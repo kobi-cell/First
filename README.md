@@ -8,6 +8,7 @@
 - [Quick Start יומי לצוות הגבייה (עמוד אחד)](./WORKIES_COLLECTION_QUICK_START_HE.md)
 - [Checklist Go/No-Go לארכיטקטורה מלאה](./WORKIES_ARCHITECTURE_GO_NO_GO_CHECKLIST_HE.md)
 - [Baseline מצב נוכחי — מוכנות ארכיטקטורה (Go/No-Go)](./WORKIES_ARCHITECTURE_READINESS_BASELINE_HE.md)
+- [Baseline אופרטיבי — בעלי אחריות שמיים ותאריכי יעד](./WORKIES_ARCHITECTURE_READINESS_BASELINE_ASSIGNED_HE.md)
 
 מסמך זה כולל:
 - ארכיטקטורת יעד דינמית
@@ -20,3 +21,4 @@
 - דף הנחיות עבודה יומי לצוות הגבייה
 - צ'קליסט החלטה ניהולי למעבר מאפיון ליישום מלא
 - הערכת מוכנות נוכחית ממולאת עם ציון וסטטוס NO-GO/GO
+- גרסת ביצוע אופרטיבית עם אחריות שמית ותאריכי בקרה
