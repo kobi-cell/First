@@ -13,6 +13,7 @@
 - [מבנה מוכן ל-Google Sites (תפריט, עמודים ותוכן)](./WORKIES_GOOGLE_SITES_PORTAL_STRUCTURE_HE.md)
 - [תוכן Copy-Paste מוכן לכל עמוד ב-Google Sites](./WORKIES_GOOGLE_SITES_COPY_PASTE_CONTENT_HE.md)
 - [תבנית CSV מוכנה לייבוא ל-Google Sheets (20 שורות התחלתיות)](./WORKIES_PROCESS_TRACKER_TEMPLATE_HE.csv)
+- [תבנית כרטיס תהליך ריקה (Copy-Paste ל-Google Doc)](./WORKIES_PROCESS_CARD_TEMPLATE_HE.md)
 
 מסמך זה כולל:
 - ארכיטקטורת יעד דינמית
@@ -30,3 +31,4 @@
 - Blueprint מוכן להקמת פורטל ארגוני ב-Google Sites
 - טקסטים מוכנים להדבקה ישירה בכל עמודי הפורטל
 - קובץ CSV מוכן לשיטת עבודה פשוטה בקובץ אחד
+- תבנית ריקה לאפיון תהליך בודד בצורה אחידה

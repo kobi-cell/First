@@ -205,3 +205,4 @@
 לניסוחים מוכנים (Copy-Paste) עבור כל עמוד:
 
 - `./WORKIES_GOOGLE_SITES_COPY_PASTE_CONTENT_HE.md`
+- `./WORKIES_PROCESS_CARD_TEMPLATE_HE.md` (תבנית כרטיס תהליך ריקה)
