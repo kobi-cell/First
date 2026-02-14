@@ -10,6 +10,7 @@
 - [Baseline מצב נוכחי — מוכנות ארכיטקטורה (Go/No-Go)](./WORKIES_ARCHITECTURE_READINESS_BASELINE_HE.md)
 - [Baseline אופרטיבי — בעלי אחריות שמיים ותאריכי יעד](./WORKIES_ARCHITECTURE_READINESS_BASELINE_ASSIGNED_HE.md)
 - [תוכנית עבודה מפורטת לתיעוד רוחבי (למתחילים)](./WORKIES_CROSS_FUNCTIONAL_DOCUMENTATION_WORKPLAN_HE.md)
+- [מבנה מוכן ל-Google Sites (תפריט, עמודים ותוכן)](./WORKIES_GOOGLE_SITES_PORTAL_STRUCTURE_HE.md)
 
 מסמך זה כולל:
 - ארכיטקטורת יעד דינמית
@@ -24,3 +25,4 @@
 - הערכת מוכנות נוכחית ממולאת עם ציון וסטטוס NO-GO/GO
 - גרסת ביצוע אופרטיבית עם אחריות שמית ותאריכי בקרה
 - תוכנית יישום צעד-אחר-צעד לתיעוד רוחבי ובחירת מערכות שמירה
+- Blueprint מוכן להקמת פורטל ארגוני ב-Google Sites
