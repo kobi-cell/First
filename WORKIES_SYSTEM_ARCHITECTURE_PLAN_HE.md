@@ -25,6 +25,8 @@
   ./WORKIES_ARCHITECTURE_GO_NO_GO_CHECKLIST_HE.md
 - Baseline מצב נוכחי (ציון מוכנות והחלטה):  
   ./WORKIES_ARCHITECTURE_READINESS_BASELINE_HE.md
+- תוכנית תיעוד רוחבי שלב-אחר-שלב (למתחילים):  
+  ./WORKIES_CROSS_FUNCTIONAL_DOCUMENTATION_WORKPLAN_HE.md
 
 > הערה: הפורטל נותח והוטמע במסמך. מסמך Google דורש גישה מאומתת ולכן יש להשלים סנכרון תוכן סופי מולו בשלב האפיון.
 
