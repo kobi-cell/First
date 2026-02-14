@@ -17,6 +17,8 @@
   https://radiant-centaur-d96045.netlify.app
 - מסמך יעדי תפקיד (Google Doc):  
   https://docs.google.com/document/d/1STF4Bs_XVAM9AvViIYJ5RpV5mmZ8evz-QKqgvZfwrzE/edit?tab=t.0
+- נספח החלטות צמצום מערכות (Keep / Merge / Retire):  
+  ./WORKIES_SYSTEMS_KEEP_MERGE_RETIRE_HE.md
 
 > הערה: הפורטל נותח והוטמע במסמך. מסמך Google דורש גישה מאומתת ולכן יש להשלים סנכרון תוכן סופי מולו בשלב האפיון.
 
