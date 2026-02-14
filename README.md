@@ -6,6 +6,7 @@
 - [תוכנית צמצום מערכות — Keep / Merge / Retire](./WORKIES_SYSTEMS_KEEP_MERGE_RETIRE_HE.md)
 - [מדריך Workbench מפורט — הגדרה, משתמשים, ותהליך התחלה](./WORKIES_WORKBENCH_GUIDE_HE.md)
 - [Quick Start יומי לצוות הגבייה (עמוד אחד)](./WORKIES_COLLECTION_QUICK_START_HE.md)
+- [Checklist Go/No-Go לארכיטקטורה מלאה](./WORKIES_ARCHITECTURE_GO_NO_GO_CHECKLIST_HE.md)
 
 מסמך זה כולל:
 - ארכיטקטורת יעד דינמית
@@ -16,3 +17,4 @@
 - תוכנית אופרטיבית לצמצום מספר מערכות בתהליך
 - הגדרה פרקטית של Workbench (מערכת + מתודולוגיה) והטמעה מדורגת
 - דף הנחיות עבודה יומי לצוות הגבייה
+- צ'קליסט החלטה ניהולי למעבר מאפיון ליישום מלא

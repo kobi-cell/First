@@ -21,6 +21,8 @@
   ./WORKIES_SYSTEMS_KEEP_MERGE_RETIRE_HE.md
 - מדריך Workbench מפורט (מערכת + מתודולוגיה + התחלה):  
   ./WORKIES_WORKBENCH_GUIDE_HE.md
+- Checklist Go/No-Go למעבר מאפיון ליישום מלא:  
+  ./WORKIES_ARCHITECTURE_GO_NO_GO_CHECKLIST_HE.md
 
 > הערה: הפורטל נותח והוטמע במסמך. מסמך Google דורש גישה מאומתת ולכן יש להשלים סנכרון תוכן סופי מולו בשלב האפיון.
 
