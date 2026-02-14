@@ -15,6 +15,7 @@
 - [תבנית CSV מוכנה לייבוא ל-Google Sheets (20 שורות התחלתיות)](./WORKIES_PROCESS_TRACKER_TEMPLATE_HE.csv)
 - [תבנית כרטיס תהליך ריקה (Copy-Paste ל-Google Doc)](./WORKIES_PROCESS_CARD_TEMPLATE_HE.md)
 - [כרטיס תהליך מלא — גבייה / לקוחות קבועים / משרדים](./WORKIES_PROCESS_CARD_COLLECTIONS_PERMANENT_OFFICES_HE.md)
+- [Brief מוכן לגיוס ארכיטקט מוביל פרויקט](./WORKIES_ARCHITECT_HIRING_BRIEF_HE.md)
 
 מסמך זה כולל:
 - ארכיטקטורת יעד דינמית
@@ -34,3 +35,4 @@
 - קובץ CSV מוכן לשיטת עבודה פשוטה בקובץ אחד
 - תבנית ריקה לאפיון תהליך בודד בצורה אחידה
 - דוגמה מלאה מוכנה לתהליך גבייה של לקוחות משרדים
+- מסמך Brief לשליחה מיידית למועמד ארכיטקט

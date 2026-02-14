@@ -29,6 +29,8 @@
   ./WORKIES_CROSS_FUNCTIONAL_DOCUMENTATION_WORKPLAN_HE.md
 - Blueprint לפורטל ארגוני ב-Google Sites:  
   ./WORKIES_GOOGLE_SITES_PORTAL_STRUCTURE_HE.md
+- Brief לגיוס ארכיטקט מוביל פרויקט:  
+  ./WORKIES_ARCHITECT_HIRING_BRIEF_HE.md
 
 > הערה: הפורטל נותח והוטמע במסמך. מסמך Google דורש גישה מאומתת ולכן יש להשלים סנכרון תוכן סופי מולו בשלב האפיון.
 
