@@ -182,3 +182,10 @@ Embed של Approval Log (Filtered by Pending).
 3. בקרה ואישורים
 
 אחרי שזה עובד טוב — תרחיב לשאר המחלקות.
+
+---
+
+## נספח Copy-Paste מוכן
+לטקסטים מוכנים להדבקה בכל עמודי האתר:
+
+- `./WORKIES_GOOGLE_SITES_COPY_PASTE_CONTENT_HE.md`
