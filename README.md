@@ -24,6 +24,7 @@
 - [טבלת Popups מלאה (8 מסכים קופצים — טריגר, שדות, ולידציות, RBAC)](./WORKIES_POPUP_TABLE_HE.md)
 - [דוקומנטציה מלאה לכל פונקציות Pickspace API (400 operations)](./WORKIES_PICKSPACE_API_DOCUMENTATION_HE.md)
 - [קטלוג פונקציות Pickspace בפורמט CSV (למיפוי/QA/פיתוח)](./WORKIES_PICKSPACE_API_FUNCTIONS_CATALOG.csv)
+- [Postman Collection מוכן — Move In/Out ל-30 יום קדימה](./WORKIES_PICKSPACE_MOVE_IN_OUT_POSTMAN_COLLECTION.json)
 
 עדכון אחרון: PRD מוזג לגרסת v3 על בסיס `prd_workies.pdf` + `workies_mockup_vector.pdf` + `workies_mockup_full.pdf`, ונוספה דוקומנטציה מלאה לכל פונקציות Pickspace API מתוך Swagger חי.
 
