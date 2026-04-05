@@ -16,6 +16,11 @@
 - [תבנית כרטיס תהליך ריקה (Copy-Paste ל-Google Doc)](./WORKIES_PROCESS_CARD_TEMPLATE_HE.md)
 - [כרטיס תהליך מלא — גבייה / לקוחות קבועים / משרדים](./WORKIES_PROCESS_CARD_COLLECTIONS_PERMANENT_OFFICES_HE.md)
 - [Brief מוכן לגיוס ארכיטקט מוביל פרויקט](./WORKIES_ARCHITECT_HIRING_BRIEF_HE.md)
+- [PRD מלא לפיתוח (Development-Ready)](./WORKIES_PRD_DEVELOPMENT_READY_HE.md)
+- [מטריצת הרשאות RBAC](./WORKIES_RBAC_PERMISSION_MATRIX_HE.md)
+- [Data Model ראשוני (ישויות, שדות וקשרים)](./WORKIES_DATA_MODEL_INITIAL_HE.md)
+- [Backlog מסודר לפי ספרינטים S0-S7](./WORKIES_SPRINT_BACKLOG_S0_S7_HE.md)
+- [Integration Spec ל-Pickspace / Zoho / Sumit / SAP](./WORKIES_INTEGRATION_SPEC_HE.md)
 
 מסמך זה כולל:
 - ארכיטקטורת יעד דינמית
@@ -36,3 +41,4 @@
 - תבנית ריקה לאפיון תהליך בודד בצורה אחידה
 - דוגמה מלאה מוכנה לתהליך גבייה של לקוחות משרדים
 - מסמך Brief לשליחה מיידית למועמד ארכיטקט
+- חבילת מסמכי דרישות מלאה להתחלת פיתוח (PRD, RBAC, Data Model, Backlog, Integration)
