@@ -1,206 +1,191 @@
-# WORKIES AIO — Backlog & Sprint Plan (S0-S7)
+# WORKIES AIO — Backlog & Sprint Plan (S0-S7) — Updated to Mockup v2
 
-## 1. עקרונות תכנון ספרינטים
+## 1) עקרונות תכנון
 - משך ספרינט: 2 שבועות
-- גודל צוות הנחה: 1 Lead Dev + 2 Fullstack + 1 QA + 1 PM (חלקי)
-- הערכות ראשוניות ביחידות Story Points (SP)
-- טווח המרה גס: 1 SP ~ 0.5-1 יום פיתוח (תלוי מורכבות)
+- Story Points (SP): הערכה ראשונית לצוות Dev
+- סדר פיתוח נגזר ישירות מהמסכים במוקאפ:
+  1) Workbench + Alerts
+  2) Pipeline
+  3) Contracts & Renewals
+  4) Collections + Aging
+  5) KPI/Weekly/Monthly Reports
 
 ---
 
-## 2. יעדי מאקרו לפי שלבים
-- S0: Foundations / Environments / Architecture skeleton
-- S1-S2: Core app + Dashboard + Auth + RBAC
-- S3-S4: Sales Pipeline + Leads + partial integrations
-- S5-S6: Finance/Collections + Approvals + Monthly report
-- S7: Stabilization / Hardening / Go-live readiness
+## 2) מסכי יעד מהמוקאפ (Traceability)
+| Screen ID | שם מסך | מקור במוקאפ |
+|---|---|---|
+| SCR-01 | Workbench | page 1 |
+| SCR-02 | Alerts | page 2 |
+| SCR-03 | Collections | page 3 |
+| SCR-04 | Pipeline | page 4 |
+| SCR-05 | Contracts & Renewals | page 5 |
+| SCR-06 | KPI Report | page 6 |
+| SCR-07 | Aging Report | page 7 |
+| SCR-08 | Weekly Report | page 8 |
+| SCR-09 | Monthly P&L | page 9 |
 
 ---
 
-## 3. Sprint S0 — Setup & Foundation
-## מטרות
-- להעמיד סביבת פיתוח וסטנדרטים
-- להגדיר חוזי API פנימיים
-- להקים שלד מערכת
+## 3) Sprint S0 — Foundation
+מטרה: שלד מערכת, הרשאות, audit, תשתיות.
 
-## Stories
-| ID | Story | SP | תלות | Output |
-|---|---|---:|---|---|
-| US-001 | Repo structure + mono setup | 5 | - | בסיס פרויקט |
-| US-002 | Auth skeleton + JWT | 5 | - | התחברות בסיסית |
-| US-003 | Role model + RBAC middleware | 8 | US-002 | שכבת הרשאות |
-| US-004 | Audit logging foundation | 5 | US-001 | טבלת audit + logger |
-| US-005 | Error handling framework + retry utility | 5 | US-001 | מודול תקלות |
-| US-006 | CI/CD + environments (dev/stage) | 8 | US-001 | pipeline פעיל |
+| Story ID | Story | SP |
+|---|---|---:|
+| US-001 | פרויקט בסיס + CI/CD + environments | 8 |
+| US-002 | Auth + JWT + session handling | 8 |
+| US-003 | RBAC middleware לפי מטריצה | 8 |
+| US-004 | Audit log foundation + correlation ID | 8 |
+| US-005 | Error framework + retry utilities | 5 |
 
-סה"כ S0: **36 SP**
+**סה"כ S0: 37 SP**
 
 ---
 
-## 4. Sprint S1 — Dashboard & Core UI
-## מטרות
-- לייצר מעטפת אפליקציה פעילה
-- מסך ראשי עם KPI placeholders
+## 4) Sprint S1 — Workbench + Alerts
+מטרה: מסכי SCR-01, SCR-02 פעילים.
 
-## Stories
-| ID | Story | SP | תלות | Output |
-|---|---|---:|---|---|
-| US-007 | App shell + navigation | 5 | S0 | Layout מלא |
-| US-008 | Dashboard KPI cards (mock data) | 8 | US-007 | Dashboard v1 |
-| US-009 | Alerts feed component | 5 | US-007 | Alerts UI |
-| US-010 | Global filters (date/department/site) | 5 | US-008 | פילטרים גלובליים |
-| US-011 | Role-based view guards | 8 | S0 RBAC | הסתרת מסכים לפי role |
-| US-012 | Dashboard API contracts | 5 | US-008 | schema ו-contracts |
+| Story ID | Story | SP | Screen |
+|---|---|---:|---|
+| US-006 | App shell + side nav + counters | 8 | SCR-01 |
+| US-007 | KPI cards live bindings | 8 | SCR-01 |
+| US-008 | Urgent tasks widget + actions | 8 | SCR-01 |
+| US-009 | Alerts list + severity + filters | 8 | SCR-02 |
+| US-010 | Alert actions (send reminder, update, escalate) | 8 | SCR-02 |
+| US-011 | Mark-as-read / mark-all-read | 3 | SCR-02 |
 
-סה"כ S1: **36 SP**
+**סה"כ S1: 43 SP**
 
 ---
 
-## 5. Sprint S2 — Data Backbone & Read APIs
-## מטרות
-- יישום Data model ראשוני
-- חיבור נתונים לקריאה ממקורות
+## 5) Sprint S2 — Pipeline + Contracts
+מטרה: מסכי SCR-04, SCR-05.
 
-## Stories
-| ID | Story | SP | תלות | Output |
-|---|---|---:|---|---|
-| US-013 | Core entities tables + migrations | 8 | S0 | DB בסיסי |
-| US-014 | Customer/Office/Contract read APIs | 8 | US-013 | read endpoints |
-| US-015 | Lead/Task read APIs | 5 | US-013 | read endpoints |
-| US-016 | Invoice/Payment read APIs | 8 | US-013 | read endpoints |
-| US-017 | Unified search endpoint | 5 | US-014-16 | חיפוש גלובלי |
-| US-018 | Data validation + schema guards | 5 | US-013 | ולידציות |
+| Story ID | Story | SP | Screen |
+|---|---|---:|---|
+| US-012 | Pipeline Kanban board | 13 | SCR-04 |
+| US-013 | Lead CRUD + stage transitions | 13 | SCR-04 |
+| US-014 | Convert lead to member + contract trigger | 8 | SCR-04 |
+| US-015 | Contracts list + renewal statuses | 8 | SCR-05 |
+| US-016 | Renewal actions (renew, exit, update signed) | 8 | SCR-05 |
+| US-017 | Contract risk flags (14/30 days) | 5 | SCR-05 |
 
-סה"כ S2: **39 SP**
+**סה"כ S2: 55 SP**
 
 ---
 
-## 6. Sprint S3 — Sales Pipeline MVP
-## מטרות
-- משפך לידים פעיל
-- CRUD לידים + מעבר שלבים
+## 6) Sprint S3 — Collections + Aging
+מטרה: מסכי SCR-03, SCR-07.
 
-## Stories
-| ID | Story | SP | תלות | Output |
-|---|---|---:|---|---|
-| US-019 | Pipeline board UI | 8 | S1 | Kanban פעיל |
-| US-020 | Lead create/update/delete | 8 | S2 | CRUD מלא |
-| US-021 | Lead stage transition flow | 8 | US-019/020 | מעבר שלבים |
-| US-022 | Duplicate detection (email/phone) | 5 | US-020 | מניעת כפילויות |
-| US-023 | Convert lead to customer | 8 | US-020 | המרה ללקוח |
-| US-024 | Sales activity audit events | 3 | S0 audit | אירועי Audit |
+| Story ID | Story | SP | Screen |
+|---|---|---:|---|
+| US-018 | Open invoices table + filters | 8 | SCR-03 |
+| US-019 | Collection tasks panel + actions | 8 | SCR-03 |
+| US-020 | Debt buckets 0-30/31-60/61-90/90+ | 8 | SCR-03/SCR-07 |
+| US-021 | Aging customer report table | 8 | SCR-07 |
+| US-022 | Payment update flow (full/partial) | 8 | SCR-03 |
+| US-023 | Reminder sending bulk/single | 5 | SCR-03/SCR-07 |
+| US-024 | Exception workflow handoff to approvals | 5 | SCR-03 |
 
-סה"כ S3: **40 SP**
+**סה"כ S3: 50 SP**
 
 ---
 
-## 7. Sprint S4 — CRM Integrations (Pickspace + Zoho)
-## מטרות
-- סנכרון נתוני לידים/לקוחות
-- ניטור תקלות אינטגרציה
+## 7) Sprint S4 — KPI + Weekly + Monthly Reports
+מטרה: מסכי SCR-06, SCR-08, SCR-09.
 
-## Stories
-| ID | Story | SP | תלות | Output |
-|---|---|---:|---|---|
-| US-025 | Pickspace leads sync job | 8 | S3 | job פעיל |
-| US-026 | Pickspace members/offices sync | 8 | S2 | job פעיל |
-| US-027 | Zoho Leads pull + mapping | 8 | S3 | job פעיל |
-| US-028 | Zoho Accounts/Contacts sync | 8 | S2 | job פעיל |
-| US-029 | Reconciliation screen for sync conflicts | 8 | US-025-028 | מסך פערים |
-| US-030 | Integration failure queue + retry UI | 8 | S0 error framework | מרכז תקלות |
+| Story ID | Story | SP | Screen |
+|---|---|---:|---|
+| US-025 | KPI report page + target vs actual table | 8 | SCR-06 |
+| US-026 | KPI trend widgets and status badges | 8 | SCR-06 |
+| US-027 | Weekly report page + weekly comparison | 8 | SCR-08 |
+| US-028 | Monthly P&L categories + margin cards | 8 | SCR-09 |
+| US-029 | PDF export for all report screens | 8 | SCR-06/08/09 |
+| US-030 | Email/send report actions | 5 | SCR-08/09 |
 
-סה"כ S4: **48 SP**
+**סה"כ S4: 45 SP**
 
 ---
 
-## 8. Sprint S5 — Finance & Collections MVP
-## מטרות
-- מודול גבייה חי
-- חשבוניות/תשלומים/Aging
+## 8) Sprint S5 — REST Integrations Wave 1
+מטרה: Pickspace + Zoho ל-Sales/Contracts/Offices.
 
-## Stories
-| ID | Story | SP | תלות | Output |
-|---|---|---:|---|---|
-| US-031 | Invoice list + filters + status | 8 | S2 | מסך חשבוניות |
-| US-032 | Payment list + allocation display | 8 | S2 | מסך תשלומים |
-| US-033 | Aging 30/60/90 widget + table | 8 | US-031 | Aging פעיל |
-| US-034 | Debt and delinquency dashboard | 5 | US-031/033 | דשבורד חובות |
-| US-035 | Sumit customer sync integration | 8 | S2 | sync לקוחות |
-| US-036 | Sumit documents list/create/get integration | 13 | US-031 | אינטגרציית מסמכים |
-| US-037 | Sumit payments list/get integration | 8 | US-032 | אינטגרציית תשלום |
+| Story ID | Story | SP |
+|---|---|---:|
+| US-031 | Pickspace leads/pipelines sync | 13 |
+| US-032 | Pickspace members/contracts/offices sync | 13 |
+| US-033 | Zoho leads/accounts/contacts sync | 13 |
+| US-034 | Data reconciliation console (conflicts) | 8 |
+| US-035 | Integration job monitoring (status/latency/errors) | 8 |
 
-סה"כ S5: **58 SP**
+**סה"כ S5: 55 SP**
 
 ---
 
-## 9. Sprint S6 — Approvals, Monthly Report, SAP Adapter
-## מטרות
-- הטמעת approval flow רוחבי
-- הפקת דוח חודשי
-- שכבת SAP handoff
+## 9) Sprint S6 — REST Integrations Wave 2 + Approvals
+מטרה: Sumit + approvals מרכזי + SAP adapter v1.
 
-## Stories
-| ID | Story | SP | תלות | Output |
-|---|---|---:|---|---|
-| US-038 | Approval center (queue + actions) | 13 | S1/S5 | מרכז אישורים |
-| US-039 | Risk rules engine (Low/Medium/High) | 8 | US-038 | engine בסיסי |
-| US-040 | Financial exception flow (credit/cancel/edit) | 13 | US-038/S5 | flow פעיל |
-| US-041 | Monthly report generator | 8 | S5 | דוח חודשי |
-| US-042 | Export PDF/CSV | 5 | US-041 | ייצוא |
-| US-043 | SAP adapter v1 (export feed + status) | 8 | S5 data | handoff ל-SAP |
-| US-044 | Approval + Audit linkage hardening | 5 | US-038 | traceability מלאה |
+| Story ID | Story | SP |
+|---|---|---:|
+| US-036 | Sumit customers/documents/payments integration | 13 |
+| US-037 | Approval center UI + queue + actions | 13 |
+| US-038 | Risk policy engine (low/medium/high) | 8 |
+| US-039 | SAP adapter export (approved invoices/payments) | 8 |
+| US-040 | End-to-end audit linkage (action->approval->result) | 8 |
 
-סה"כ S6: **60 SP**
+**סה"כ S6: 50 SP**
 
 ---
 
-## 10. Sprint S7 — Stabilization & Go-Live Readiness
-## מטרות
-- ייצוב ביצועים ואמינות
-- QA/UAT מלא
-- מוכנות השקה
+## 10) Sprint S7 — Stabilization & Go-Live
+מטרה: UAT, hardening, go-live checklist.
 
-## Stories
-| ID | Story | SP | תלות | Output |
-|---|---|---:|---|---|
-| US-045 | End-to-end test suite critical flows | 13 | all | בדיקות E2E |
-| US-046 | NFR hardening (timeouts/retries/alerts) | 8 | all | אמינות משופרת |
-| US-047 | Security hardening + permission audit | 8 | S1 RBAC | סקר הרשאות |
-| US-048 | Data migration scripts + validation | 8 | S2 data | מוכנות נתונים |
-| US-049 | UAT fixes batch | 13 | UAT | תיקוני משתמשים |
-| US-050 | Go-live checklist + runbook | 5 | all | Runbook מלא |
+| Story ID | Story | SP |
+|---|---|---:|
+| US-041 | E2E tests for SCR-01..SCR-09 | 13 |
+| US-042 | Performance tuning + query/index improvements | 8 |
+| US-043 | Security hardening + permission audit | 8 |
+| US-044 | UAT fixes batch | 13 |
+| US-045 | Go-live runbook + rollback plan | 8 |
 
-סה"כ S7: **55 SP**
+**סה"כ S7: 50 SP**
 
 ---
 
-## 11. סיכום עומסים
+## 11) Summary
 | Sprint | SP |
 |---|---:|
-| S0 | 36 |
-| S1 | 36 |
-| S2 | 39 |
-| S3 | 40 |
-| S4 | 48 |
-| S5 | 58 |
-| S6 | 60 |
-| S7 | 55 |
-| **Total** | **372 SP** |
+| S0 | 37 |
+| S1 | 43 |
+| S2 | 55 |
+| S3 | 50 |
+| S4 | 45 |
+| S5 | 55 |
+| S6 | 50 |
+| S7 | 50 |
+| **Total** | **385 SP** |
 
 ---
 
-## 12. Milestones
-1. End S2: Platform + data backbone מוכנים
-2. End S4: Sales flow + CRM sync פעילים
-3. End S6: Finance + Approvals + Reports פעילים
-4. End S7: Go-live readiness
+## 12) Milestones
+1. End S1: Workbench + Alerts demo
+2. End S3: Sales + Collections operational demo
+3. End S4: Full reporting demo
+4. End S6: Integrations + approvals demo
+5. End S7: Go-live readiness
 
 ---
 
-## 13. ניהול סיכונים בתכנון הספרינטים
-- סיכון: תלות באותנטיקציה/API צד שלישי  
-  מיתון: מימוש mock connectors ב-S0
-- סיכון: אי בהירות Source of Truth  
-  מיתון: החלטה ניהולית נעולה לפני S2
-- סיכון: עומס אינטגרציות בספרינט אחד  
-  מיתון: פיצול Pickspace/Zoho/Sumit לפי S4/S5
+## 13) Definition of Ready (לכל Story לפני ספרינט)
+- מסך יעד קיים במוקאפ
+- User story מנוסח
+- Acceptance criteria מוגדר
+- API dependencies ידועים
+- Owner ברור
+
+## 14) Definition of Done
+- Dev complete + QA pass
+- RBAC enforced
+- Audit events emitted
+- API contracts updated
+- Monitoring added

@@ -1,254 +1,353 @@
-# WORKIES AIO — PRD Development-Ready
+# WORKIES AIO — PRD Development-Ready (Aligned to Mockup v2)
 
-## 1. מטרת המסמך
-מסמך זה מגדיר דרישות מוצר ברמת פיתוח (Developer-Ready) למערכת Workies AIO, כולל:
-- User Stories
-- לוגיקה עסקית
-- Acceptance Criteria
-- Edge Cases
-- מסכי ליבה והזרימות המרכזיות
-
-המסמך נועד לאפשר תחילת פיתוח ללא שאלות פתוחות קריטיות.
+## 1) מטרת המסמך
+מסמך PRD זה מגדיר דרישות מוצר ברמת פיתוח עבור מערכת Workies AIO, בהתאמה ישירה למוקאפ שהועלה (`workies_mockup_vector.pdf`), כך שמפתח יכול להתחיל פיתוח ללא שאלות פתוחות מהותיות.
 
 ---
 
-## 2. חזון מוצר
-Workies AIO היא מערכת תפעול אחודה שמרכזת:
-1. מכירות (Leads + Pipeline)
-2. גבייה ופיננסים (חשבוניות, חיובים, תשלומים, חובות)
-3. תפעול לקוחות/משרדים
-4. דוחות הנהלה חודשיים
-5. בקרות ואישורים (Human-in-the-Loop)
-
-### בעיות שהמוצר פותר
-- ריבוי מערכות וניווט מפוזר
-- כפילות נתונים
-- תהליכים ידניים
-- חוסר בקרה/אישור על פעולות רגישות
-- קושי בקבלת תמונת מצב ניהולית אחודה
+## 2) מקורות קלט מחייבים
+1. מוקאפ וקטורי: `workies_mockup_vector.pdf`  
+2. אפיון קיים (Workbench Spec)
+3. REST APIs:
+   - Pickspace: `https://workies.pickspace.com/api-v2/swagger#/`
+   - Sumit: `https://app.sumit.co.il/help/developers/swagger/index.html`
+   - Zoho CRM v8: `https://www.zoho.com/crm/developer/docs/api/v8/get-records.html`
 
 ---
 
-## 3. Scope
-## In Scope (MVP עד Release 1)
-- מסך ראשי (Dashboard)
-- משפך מכירות (Pipeline + Leads)
-- מודול גבייה/פיננסים (Invoices/Payments/Debt)
-- דוח חודשי ניהולי
-- RBAC לפי תפקידים
-- אינטגרציות REST:
-  - Pickspace
-  - Zoho CRM
-  - Sumit
-  - SAP (שלב ראשון: מתאם / שכבת הכנה)
+## 3) Vision + Scope
+Workies AIO היא מערכת עבודה אחודה לניהול תפעול עסקי יומיומי על פני תחומים:
+- Workbench (מסך ראשי)
+- Alerts (התראות)
+- Sales Pipeline
+- Contracts & Renewals
+- Collections
+- KPI Report
+- Aging Report
+- Weekly Report
+- Monthly P&L
 
-## Out of Scope (שלבים מתקדמים)
-- Mobile App Native
-- AI המלצות אוטומטיות מתקדמות
-- Workflow Designer ויזואלי למשתמש קצה
+### In Scope (Release 1)
+- 9 מסכים לפי המוקאפ
+- ניווט צד מלא עם badge counts
+- מנגנון אישורים לפעולות חריגות
+- אינטגרציות REST עם Pickspace + Zoho + Sumit
+- SAP כ-adapter phase (export/status)
+
+### Out of Scope (Release 1)
+- Mobile native
+- Workflow builder ויזואלי
+- מנוע AI מתקדם
 
 ---
 
-## 4. משתמשים (Personas)
-1. הנהלה (נדב)
+## 4) Roles (לשימוש במסמך)
+1. הנהלה (CEO)
 2. מכירות
 3. שיווק
 4. כספים/גבייה
 5. תפעול
-6. מנהל מערכת
+6. Admin
 
 ---
 
-## 5. KPI מוצר
-1. צמצום מערכות מגע למשתמש (ממוצע לתהליך)
-2. ירידה בכפילויות נתונים
-3. זמן מחזור תהליך (Lead-to-Cash)
-4. שיעור טעויות פיננסיות
-5. שיעור פעולות רגישות עם אישור + Audit
-6. Adoption (שימוש שבועי פעיל למשתמש תפקידי)
+## 5) מסכים נדרשים (Screen Catalog)
+| Screen ID | שם מסך | מקור במוקאפ |
+|---|---|---|
+| SCR-01 | Workbench | עמוד 1 |
+| SCR-02 | Alerts | עמוד 2 |
+| SCR-03 | Collections | עמוד 3 |
+| SCR-04 | Pipeline | עמוד 4 |
+| SCR-05 | Contracts & Renewals | עמוד 5 |
+| SCR-06 | KPI Report | עמוד 6 |
+| SCR-07 | Aging Report | עמוד 7 |
+| SCR-08 | Weekly Report | עמוד 8 |
+| SCR-09 | Monthly P&L Report | עמוד 9 |
 
 ---
 
-## 6. דרישות פונקציונליות לפי מודולים
+## 6) דרישות פונקציונליות מפורטות לפי מסך
 
-## 6.1 Dashboard ראשי
-### User Story
-כ-[הנהלה/מנהל תחום] אני רוצה לראות תמונת מצב מאוחדת כדי לקבל החלטות מהירות.
+## SCR-01 Workbench
+### User Stories
+- כ-מנכ"ל אני רוצה לראות KPI cards ופעולות דחופות כדי לתעדף עבודה.
+- כ-מנהל תחום אני רוצה לראות "משימות באיחור/דחוף/רגיל" כדי לסגור פערים בזמן.
 
-### דרישות
-- KPI cards: מכירות, גבייה, תפעול, חריגות
-- Alerts feed: פעולות חריגות/חסרות אישור
-- Shortcuts למסכים תפעוליים
-- פילטרים: טווח תאריכים, מחלקה, אתר/לוקיישן
+### Business Logic
+1. Workbench מציג summary cards:
+   - רווח תפעולי
+   - שיעור גבייה
+   - תפוסה
+   - חריגות פתוחות
+2. בלוק "פעולות דחופות" מסווג ל:
+   - באיחור (אדום)
+   - דחוף (צהוב)
+   - רגיל (כחול)
+3. לכל שורה מוצגת פעולה מהירה (CTA):
+   - "אשר", "שלח תזכורת", "עדכן", "פתוח"
 
 ### Acceptance Criteria
-- מוצגים לפחות 8 מדדים מרכזיים בזמן טעינה < 3 שניות
-- כל KPI ניתן ל-drill-down למסך מקור
-- Alerts מציגים חומרה (Low/Medium/High)
+- מוצגים לפחות 4 KPI cards + 3 רמות דחיפות משימות.
+- כל פעולה מהירה מפנה למסך היעד הרלוונטי.
+- שינוי סטטוס משימה מעדכן את badge הניווט תוך <=10 שניות.
 
 ### Edge Cases
-- מקור נתונים לא זמין -> KPI מוצג כ-"Data unavailable" + לוג שגיאה
-- משתמש ללא הרשאת מודול -> KPI המודול מוסתר
+- KPI חסר ממערכת חיצונית -> הצגת "לא זמין" + warning icon.
+- משימה ללא assignee -> עולה לראש הרשימה בדחיפות.
 
 ---
 
-## 6.2 מכירות — Pipeline + Leads
-### User Story 1
-כ-[איש מכירות] אני רוצה לראות לידים לפי שלבי משפך כדי לנהל מעקב והמרות.
+## SCR-02 Alerts
+### User Stories
+- כ-מנכ"ל אני רוצה פיד התראות אחוד עם חומרה כדי להגיב מהר.
+- כ-מנהל כספים אני רוצה לבצע פעולה ישירה מהתראה (למשל תזכורת חוב).
 
-### User Story 2
-כ-[מנהל מכירות] אני רוצה לעדכן שלב ליד ולנטר צווארי בקבוק.
-
-### דרישות
-- תצוגת Kanban לפי Pipeline Stages
-- יצירה/עדכון ליד
-- המרת ליד ללקוח
-- Sync דו-כיווני עם Pickspace / Zoho (לפי כללי מקור אמת)
-- SLA התראה לליד ללא מגע מעל X שעות
-
-### לוגיקה עסקית
-- שינוי שלב ליד נרשם ב-Audit
-- המרה ללקוח יוצרת ישות Customer פנימית ומקשרת ל-ID חיצוני
-- ליד בדופליקט (טלפון/אימייל זהה) -> לא נוצר חדש, מוצג Merge flow
+### Business Logic
+1. כל התראה כוללת:
+   - severity (red/yellow/blue)
+   - title + context
+   - מקור (מודול)
+   - timestamp
+   - CTA
+2. רשימת סינון:
+   - כל ההתראות
+   - דחוף בלבד
+3. כפתור "סמן הכל כנקרא"
 
 ### Acceptance Criteria
-- ניתן לגרור ליד בין שלבים ולשמור שינויים
-- המרת ליד מצליחה מחזירה מזהה לקוח אחיד
-- התראת SLA נוצרת אוטומטית לפי כלל מוגדר
+- כל התראה כוללת CTA לחיצה למסך יעד.
+- ניתן לסמן התראה כנקראה מבלי לעזוב מסך.
+- פילטר "דחוף בלבד" מציג רק red severity.
 
 ### Edge Cases
-- ליד חסר אימייל אך קיים טלפון: allowed עם סימון חסר
-- התנגשות עדכון בין משתמשים: optimistic locking + הודעת רענון
+- התראה כפולה (אותו correlation key) -> merge במקום כפילות.
+- פעולה מתוך התראה נכשלת -> retry + toast error.
 
 ---
 
-## 6.3 גבייה ופיננסים
-### User Story 1
-כ-[איש כספים] אני רוצה לראות חשבוניות פתוחות כדי לנהל גבייה.
+## SCR-03 Collections (גבייה)
+### User Stories
+- כ-איש גבייה אני רוצה רשימת חשבוניות פתוחות עם יתרה כדי לבצע גבייה.
+- כ-מנהל כספים אני רוצה Aging summary + פעולות הסלמה.
 
-### User Story 2
-כ-[מנהל כספים] אני רוצה לאשר פעולות חריגות לפני ביצוע.
-
-### דרישות
-- רשימת חשבוניות (Open/Overdue/Paid/Cancelled)
-- מסך תשלום/חיוב
-- Aging 30/60/90
-- פעולות חריגות: זיכוי, ביטול, שינוי סכום
-- תיעוד אישור חובה לפעולות High Risk
-- Sync עם Sumit ו-Pickspace
-
-### לוגיקה עסקית
-- חשבונית שנפרעה -> סטטוס Paid + תאריך פירעון + מקור תשלום
-- שינוי סכום מעל סף -> עובר ל-Pending Approval
-- ביטול מסמך פיננסי מחייב Audit + סיבת ביטול
+### Business Logic
+1. הצגת counters:
+   - חשבוניות פתוחות
+   - לקוחות פעילים
+   - יתרה לגבייה
+2. טבלת חשבוניות:
+   - invoice #, לקוח, משרד, לתשלום, שולם, יתרה, מועד, סטטוס
+3. CTA לשורה:
+   - תזכורת
+   - עדכן תשלום
+4. בלוק פעולות גבייה נדרשות:
+   - הסלמה 60+ ימים
+   - דחופים
 
 ### Acceptance Criteria
-- חיפוש חשבוניות לפי לקוח/תאריך/סטטוס
-- פעולה חריגה לא מבוצעת ללא אישור
-- Aging מתעדכן אוטומטית יומי
+- ניתן לסנן לפי סטטוס: פתוח/חלקי/שולם.
+- עדכון תשלום משנה סטטוס invoice בזמן אמת.
+- חשבוניות overdue מסומנות ויזואלית.
 
 ### Edge Cases
-- תשלום חלקי -> סטטוס Partially Paid + יתרה
-- כשל API ל-Sumit -> queue retry + alert למשתמש
+- תשלום חלקי > יתרה -> חסימה + הודעת שגיאה.
+- כפילות invoice number -> חסימה בשמירה + audit event.
 
 ---
 
-## 6.4 דוח חודשי ניהולי
-### User Story
-כ-[מנכ"ל] אני רוצה דוח חודשי מאוחד כדי לעקוב אחרי יעדים.
+## SCR-04 Pipeline
+### User Stories
+- כ-איש מכירות אני רוצה Kanban לפי שלבים כדי לנהל לידים.
+- כ-מנהל מכירות אני רוצה לראות ARR פוטנציאלי ומדדי המרה.
 
-### דרישות
-- סיכום מכירות/גבייה/תפעול
-- השוואה לחודש קודם + יעד
-- רשימת חריגות עיקריות
-- Export: PDF/CSV
+### Business Logic
+1. שלבים: פנייה -> הצעה נשלחה -> מו"מ -> סגירה
+2. כל כרטיס מציג:
+   - שם ליד/חברה
+   - תאריך עדכון
+   - MRR/ARR
+3. Drag & Drop בין שלבים
+4. CTA:
+   - שלח הצעת מחיר
+   - עדכן הסכם חתום
+   - ליד חדש
 
 ### Acceptance Criteria
-- דוח מופק עד 60 שניות
-- המספרים עקביים מול מודולי מקור
-- ניתן לייצא ולהוריד
+- מעבר שלב מתועד ב-Audit כולל old/new stage.
+- שינוי שלב מעדכן חישוב conversion rate.
+- ניתן להמיר ליד סגור ללקוח.
 
 ### Edge Cases
-- נתונים חסרים ממערכת חיצונית -> הדוח מסמן section as partial
+- הזזת ליד לשלב סגירה ללא סכום -> חסימה.
+- התנגשות עריכה מקבילה -> optimistic locking.
 
 ---
 
-## 7. לוגיקת אישורים (Human-in-the-Loop)
-## רמות סיכון
-- Low: פעולה שוטפת לא כספית
-- Medium: פעולה תפעולית/כספית מוגבלת
-- High: פעולה כספית חריגה/שינוי מהותי
+## SCR-05 Contracts & Renewals
+### User Stories
+- כ-מנהל תפעול/מכירות אני רוצה לראות חוזים מתקרבים לסיום כדי למנוע churn.
 
-## כללים
-1. High תמיד דורש אישור כפול (מנהל תחום + הנהלה)
-2. Medium דורש אישור מנהל תחום
-3. Low לפי מדיניות תפקיד
-4. כל אישור נרשם Audit (מי/מתי/מה/לפני/אחרי)
+### Business Logic
+1. טבלה מציגה:
+   - contract #, לקוח, משרד, סכום חודשי, תאריך התחלה/סיום, סטטוס
+2. סטטוסים:
+   - דחוף לחידוש
+   - הצעה נשלחה
+   - חתום
+   - פעיל
+3. CTA:
+   - עדכן חידוש
+   - עדכן מו"מ
+   - עדכן מערכת
+   - עזיבה
 
----
+### Acceptance Criteria
+- חוזים עם פחות מ-30 יום לסיום מסומנים warning.
+- חוזים עם פחות מ-14 יום מסומנים critical.
+- שינוי סטטוס חוזה מייצר Alert אוטומטי.
 
-## 8. Audit ו-Observability
-- Audit trail לכל CRUD רגיש
-- Correlation ID לכל קריאה בין מערכות
-- Failure log לכל אינטגרציה
-- Dashboard תקלות אינטגרציה
-
----
-
-## 9. דרישות לא-פונקציונליות (NFR)
-1. Availability: 99.5% בחודש
-2. API timeout: 10 שניות ברירת מחדל
-3. Retry policy: עד 3 ניסיונות (Exponential Backoff)
-4. Security:
-   - JWT/RBAC
-   - הצפנת נתונים במעבר (TLS)
-   - שמירת סודות ב-Secret Manager
-5. Logging:
-   - ללא חשיפת API keys בלוג
-6. Data freshness:
-   - מסכי תפעול: עד 5 דקות איחור
-   - דוחות חודשיים: snapshot יומי
+### Edge Cases
+- חוזה שנגמר ללא סטטוס חידוש -> escalation.
+- לקוח עם מספר חוזים פעילים -> הצגה מאוחדת + פילטר.
 
 ---
 
-## 10. רשימת User Stories (Development List)
-להלן רשימה ראשונית (מספור לצורכי backlog):
+## SCR-06 KPI Report
+### User Stories
+- כ-מנכ"ל אני רוצה דוח KPI חודשי מול יעד כדי למדוד ביצועים.
 
-1. US-001 Login + role resolution
-2. US-002 Dashboard KPI cards
-3. US-003 Alerts feed
-4. US-004 Lead list + filters
-5. US-005 Lead create/update
-6. US-006 Lead stage transition
-7. US-007 Lead conversion to customer
-8. US-008 Duplicate detection
-9. US-009 Invoice list + filters
-10. US-010 Payment registration
-11. US-011 Aging 30/60/90
-12. US-012 Exception approval flow
-13. US-013 Monthly report generation
-14. US-014 Report export PDF/CSV
-15. US-015 Audit log viewer
-16. US-016 Pickspace sync jobs
-17. US-017 Zoho sync jobs
-18. US-018 Sumit sync jobs
-19. US-019 SAP handoff adapter
-20. US-020 Error handling + retry center
+### Business Logic
+1. KPI table:
+   - KPI name
+   - target
+   - actual
+   - status (met/near/missed)
+2. KPIs לדוגמה מהמוקאפ:
+   - רווח תפעולי
+   - שיעור גבייה
+   - תפוסה
+   - Conversion
+   - Churn
+   - CPL
+3. Export PDF + send to manager
 
----
+### Acceptance Criteria
+- כל KPI מוצג עם חיווי סטטוס.
+- ניתן לייצא את הדוח ל-PDF.
+- יש drill-down לנתון מקור.
 
-## 11. Open Questions (להכרעה לפני Dev Freeze)
-1. מי מקור אמת סופי עבור Leads: Zoho או Pickspace?
-2. האם SAP אינטגרציה פעילה ב-MVP או רק export feed?
-3. ספי אישור כספיים מדויקים (סכום/אחוז) לכל רמת סיכון
-4. אילו שדות חובה בכל ישות עבור Go-Live
+### Edge Cases
+- KPI ללא target -> מסומן "לא הוגדר יעד".
+- נתון partial -> מסומן with warning.
 
 ---
 
-## 12. Definition of Done (DoD) לכל Story
-- קוד + בדיקות יחידה
+## SCR-07 Aging Report
+### User Stories
+- כ-כספים אני רוצה פילוח חוב 0-30/31-60/61-90/90+ כדי לנהל גבייה מדורגת.
+
+### Business Logic
+1. summary cards לפי buckets
+2. טבלת חוב לפי לקוח + buckets + total
+3. CTA לתזכורת דחופה
+
+### Acceptance Criteria
+- סכום כולל ב-buckets תואם לסך החוב.
+- ניתן להפיק רשימת לקוחות 90+ ל-escalation.
+
+### Edge Cases
+- לקוח עם credit note פתוח -> נטו חוב מחושב נכון.
+
+---
+
+## SCR-08 Weekly Report
+### User Stories
+- כ-מנכ"ל אני רוצה דוח שבועי אוטומטי עם מגמות כדי לעקוב שוטף.
+
+### Business Logic
+1. טבלת השוואה:
+   - השבוע vs שבוע קודם vs שינוי
+2. נקודות טיפול לשבוע הקרוב
+3. שליחה אוטומטית בימי ראשון בבוקר
+
+### Acceptance Criteria
+- הדוח נוצר אוטומטית לפי cron.
+- ניתן "שלח מחדש" ו"הורד PDF".
+
+### Edge Cases
+- cron נכשל -> התראת מערכת + אפשרות trigger ידני.
+
+---
+
+## SCR-09 Monthly P&L
+### User Stories
+- כ-הנהלה אני רוצה דוח הכנסות/הוצאות/רווחיות חודשי כדי לנהל ביצועים פיננסיים.
+
+### Business Logic
+1. הכנסות לפי קטגוריה (% מסה"כ)
+2. השוואת הכנסות מול הוצאות
+3. KPI summary:
+   - הכנסות
+   - הוצאות
+   - רווח גולמי
+   - מרווח רווחיות
+
+### Acceptance Criteria
+- ניתן לבחור חודש בדוח.
+- הסכומים עקביים עם נתוני פיננסים.
+- export PDF זמין.
+
+### Edge Cases
+- קטגוריה ללא שיוך -> נכנסת ל-"Other" ומסומנת לבדיקה.
+
+---
+
+## 7) User Stories Cross-Screen (Core)
+1. כ-משתמש מורשה אני רוצה ניווט צד אחיד עם badges כדי לדעת עומסים.
+2. כ-מנהל אני רוצה actions מהירות מכל מסך כדי לקצר זמן טיפול.
+3. כ-מערכת אני רוצה Audit לכל שינוי סטטוס/סכום כדי לשמור עקיבות.
+4. כ-מנהל כספים אני רוצה אישור לפעולות חריגות כדי לצמצם סיכון.
+
+---
+
+## 8) Business Rules גלובליים
+1. פעולה כספית חריגה לא מתבצעת ללא אישור.
+2. כל שינוי בסטטוס קריטי מייצר Alert.
+3. Sync חיצוני לעולם לא דורס נתון פנימי מאושר בלי Conflict flow.
+4. Badges מחושבים מנתוני אמת ולא cache בלבד.
+
+---
+
+## 9) Acceptance Criteria גלובליים
+1. 9 מסכים מהמוקאפ ממומשים.
+2. RBAC ממומש לפי תפקיד.
+3. Export PDF לפחות ל-KPI/Weekly/P&L.
+4. אינטגרציות REST פעילות לנתוני ליבה.
+5. Audit + Alerting עובדים מקצה לקצה.
+
+---
+
+## 10) NFR
+1. זמינות: 99.5%
+2. זמן טעינת מסך: עד 3 שניות ל-dashboard
+3. Retry policy אינטגרציות: 3 נסיונות
+4. TLS בכל תקשורת
+5. לוגים ללא סודות/PII מלא
+
+---
+
+## 11) Open Decisions לפני Dev Freeze
+1. Lead SoT final: Zoho vs Pickspace
+2. ספי Medium/High כספיים מדויקים
+3. SAP Phase-1 contract schema
+4. SLA לכל סוג Alert
+
+---
+
+## 12) Definition of Done (לכל Story)
+- פיתוח + unit tests
 - בדיקות אינטגרציה בסיסיות
-- Audit events מחוברים
-- הרשאות RBAC ממומשות
-- תיעוד API/Schema מעודכן
-- Acceptance Criteria עברו QA
+- RBAC pass
+- Audit events pass
+- Acceptance criteria pass
+- תיעוד API מעודכן

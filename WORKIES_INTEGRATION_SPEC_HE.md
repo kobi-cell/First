@@ -1,255 +1,209 @@
-# WORKIES AIO — Integration Specification (REST APIs)
+# WORKIES AIO — Integration Specification (Aligned to Mockup v2)
 
-## 1. מטרת המסמך
-להגדיר מפרט אינטגרציות פיתוחי עבור:
-- Pickspace API (OAS3)
-- Sumit API (OpenAPI)
+## 1) מטרה
+להגדיר מפרט אינטגרציות ברמת פיתוח למסכי המוקאפ:
+- Workbench
+- Alerts
+- Pipeline
+- Contracts & Renewals
+- Collections
+- KPI Report
+- Aging Report
+- Weekly Report
+- Monthly P&L
+
+אינטגרציות:
+- Pickspace REST API
 - Zoho CRM API v8
-- SAP (adapter/export phase)
-
-כולל:
-- Endpoints
-- Data contracts
-- Sync frequency
-- Error handling
-- Ownership
+- Sumit API
+- SAP Adapter (Phase 1)
 
 ---
 
-## 2. עקרונות אינטגרציה
-1. API-first בלבד (ללא Make)
-2. כל אינטגרציה דרך Integration Service פנימי (BFF/Orchestrator)
-3. שימוש ב-Idempotency keys לפעולות create/update קריטיות
-4. Retry policy אחיד (3 ניסיונות Exponential Backoff)
-5. DLQ עבור כשלונות מתמשכים
-6. Audit לכל פעולה עסקית משמעותית
+## 2) ארכיטקטורת אינטגרציה מוצעת
+1. כל חיבור חיצוני ניגש דרך `Integration Service` פנימי (Backend בלבד)
+2. אין קריאות ישירות מה-frontend למערכות חיצוניות
+3. כל סנכרון נרשם ב-`integration_jobs` + `audit_events`
+4. עדכון מסכים בזמן אמת מתבצע דרך:
+   - poll מחזורי קצר למסכי תפעול
+   - refresh יזום אחרי פעולות משתמש
 
 ---
 
-## 3. Authentication & Secrets
-## Pickspace
-- Auth: Bearer token (לפי swagger security bearer)
-- Secret storage: Vault/Secret Manager בלבד
-
-## Sumit
-- Credentials בגוף הבקשה (CompanyID + APIKey) לפי ה-API
-- יש לעטוף דרך service backend בלבד (לא מה-frontend)
-
-## Zoho CRM
-- OAuth2 (Zoho-oauthtoken)
-- Token refresh אוטומטי בצד שרת
-
-## SAP
-- שלב 1: export adapter / batch feed
-- שלב 2: REST/ODATA ישיר (בהתאם למימוש צד SAP)
-
----
-
-## 4. Canonical Models (שכבת מיפוי פנימית)
-האינטגרציות לא עובדות ישירות מול UI אלא דרך מודלים אחידים:
-- LeadCanonical
-- CustomerCanonical
-- ContractCanonical
-- InvoiceCanonical
-- PaymentCanonical
-- OfficeCanonical
-- TaskCanonical
-
-כל Connector ממפה:
-- External -> Canonical
-- Canonical -> External
-
----
-
-## 5. Pickspace Integration Spec
+## 3) Connector A — Pickspace
 מקור: `https://workies.pickspace.com/api-v2/swagger#/`
 
-## 5.1 Sales/Leads
-| מטרה | Method + Endpoint | כיוון | תדירות |
+### 3.1 מסך Pipeline
+| מטרה | Endpoint | תדירות | הערות מימוש |
 |---|---|---|---|
-| שליפת לידים | GET `/api-v2/leads` | Pull -> Workies | כל 5 דק' |
-| יצירת ליד | POST `/api-v2/leads` | Workies -> Push | בזמן אמת |
-| עדכון ליד | PATCH `/api-v2/leads/{id}` | דו-כיווני | בזמן אמת |
-| המרת ליד ללקוח | POST `/api-v2/leads/convert-lead-to-member/{id}` | Workies -> Push | ידני/אירוע |
+| שליפת Pipelines | `GET /api-v2/pipelines` | כל 6 שעות | cache |
+| שליפת Pipeline Stages | `GET /api-v2/pipeline-stages/{pipelineId}` | כל 6 שעות | cache |
+| שליפת לידים | `GET /api-v2/leads` | כל 5 דק' | מקור תפעולי למשפך |
+| עדכון ליד | `PATCH /api-v2/leads/{id}` | בזמן אמת | שינוי שלב/סטטוס |
+| המרת ליד ללקוח | `POST /api-v2/leads/convert-lead-to-member/{id}` | לפי פעולה | כפתור "המרה" |
 
-## 5.2 Pipeline
-| מטרה | Method + Endpoint | כיוון | תדירות |
+### 3.2 מסך חוזים וחידושים
+| מטרה | Endpoint | תדירות | הערות |
 |---|---|---|---|
-| שליפת pipelines | GET `/api-v2/pipelines` | Pull | יומי + cache |
-| שליפת שלבי משפך | GET `/api-v2/pipeline-stages/{pipelineId}` | Pull | יומי |
-| עדכון שלב | PATCH `/api-v2/pipeline-stages/{pipelineStageId}` | Push | בזמן אמת |
+| שליפת חוזים | `GET /api-v2/contracts` | כל שעה | כולל תאריכי סיום |
+| שליפת חוזה ספציפי | `GET /api-v2/contracts/{id}` | on-demand | חלון פרטים |
+| אישור/דחיית חוזה | `PATCH /api-v2/contracts/{id}/approve` / `decline` | לפי פעולה | לשלב חידוש |
+| עדכון חוזה | `PUT /api-v2/contracts/{id}` | לפי פעולה | לאחר אישור |
 
-## 5.3 Members/Contracts/Offices
-| מטרה | Method + Endpoint | כיוון | תדירות |
+### 3.3 מסך גבייה + Aging + KPI
+| מטרה | Endpoint | תדירות | הערות |
 |---|---|---|---|
-| שליפת לקוחות | GET `/api-v2/members` | Pull | כל שעה |
-| שליפת חוזים | GET `/api-v2/contracts` | Pull | כל שעה |
-| שליפת חוזה לפי מזהה | GET `/api-v2/contracts/{id}` | Pull | לפי צורך |
-| שליפת משרדים | GET `/api-v2/offices` | Pull | כל 4 שעות |
-| שליפת זמינות משרד | GET `/api-v2/offices/location/{id}/available` | Pull | כל שעה |
+| שליפת חשבוניות | `GET /api-v2/invoices` | כל 15 דק' | בסיס רשימת גבייה |
+| חשבוניות פתוחות חודשי | `GET /api-v2/invoices/getAllUnpaidInvoicesForCurrentMonth` | יומי | widget גבייה |
+| דלינקוונסי | `GET /api-v2/invoices/delinquency` | יומי | Aging/KPI |
+| Tenant ledger | `GET /api-v2/invoices/tenant-ledger` | יומי | דוחות |
+| שליפת תשלומים | `GET /api-v2/payments` | כל 15 דק' | reconciliation |
+| יצירת תשלום | `POST /api-v2/payments` | בזמן אמת | "עדכן תשלום" |
 
-## 5.4 Finance/Collections
-| מטרה | Method + Endpoint | כיוון | תדירות |
+### 3.4 מסך תפעול/תפוסה
+| מטרה | Endpoint | תדירות | הערות |
 |---|---|---|---|
-| שליפת חשבוניות | GET `/api-v2/invoices` | Pull | כל 15 דק' |
-| שליפת unpaid current month | GET `/api-v2/invoices/getAllUnpaidInvoicesForCurrentMonth` | Pull | יומי |
-| שליפת דלינקוונסי | GET `/api-v2/invoices/delinquency` | Pull | יומי |
-| יצירת תשלום | POST `/api-v2/payments` | Push | בזמן אמת |
-| שליפת תשלומים | GET `/api-v2/payments` | Pull | כל 15 דק' |
-
-## 5.5 Error handling (Pickspace)
-- 401/403: refresh token / permission alert
-- 409: optimistic conflict -> reload + retry
-- 5xx/timeout: retry x3 -> DLQ -> alert ops
+| שליפת משרדים | `GET /api-v2/offices` | כל שעה | תפוסה |
+| זמינות משרדים | `GET /api-v2/offices/location/{id}/available` | כל שעה | KPI תפוסה |
+| דו"ח תפוסה/turnover | `GET /api-v2/offices-history/occupied-offices` | יומי | KPI |
+| analytics occupancy | `GET /api-v2/analytics/occupancy/general` | יומי | widget תפוסה |
 
 ---
 
-## 6. Sumit Integration Spec
-מקור Swagger UI: `https://app.sumit.co.il/help/developers/swagger/index.html`  
-OpenAPI: `https://app.sumit.co.il/swagger/v1/swagger.json`
+## 4) Connector B — Zoho CRM (v8)
+מקורות:
+- `https://www.zoho.com/crm/developer/docs/api/v8/modules-api.html`
+- `https://www.zoho.com/crm/developer/docs/api/v8/get-records.html`
 
-## 6.1 Customers
-| מטרה | Method + Endpoint | כיוון | תדירות |
-|---|---|---|---|
-| יצירה/איתור לקוח | POST `/accounting/customers/create/` | Workies -> Sumit | בזמן אמת |
-| עדכון לקוח | POST `/accounting/customers/update/` | Workies -> Sumit | בזמן אמת |
-| יצירת הערה לקוח | POST `/accounting/customers/createremark/` | Workies -> Sumit | לפי צורך |
-
-## 6.2 Documents (Invoices/Receipts)
-| מטרה | Method + Endpoint | כיוון | תדירות |
-|---|---|---|---|
-| יצירת מסמך חשבונאי | POST `/accounting/documents/create/` | Workies -> Sumit | בזמן אמת |
-| שליחת מסמך במייל | POST `/accounting/documents/send/` | Workies -> Sumit | בזמן אמת |
-| שליפת פרטי מסמך | POST `/accounting/documents/getdetails/` | Pull | לפי צורך |
-| שליפת PDF מסמך | POST `/accounting/documents/getpdf/` | Pull | לפי צורך |
-| ביטול מסמך | POST `/accounting/documents/cancel/` | Workies -> Sumit | באישור בלבד |
-| רשימת מסמכים | POST `/accounting/documents/list/` | Pull | כל 30 דק' |
-| חוב לקוח | POST `/accounting/documents/getdebt/` | Pull | יומי |
-| דוח חובות | POST `/accounting/documents/getdebtreport/` | Pull | יומי |
-
-## 6.3 Billing/Payments
-| מטרה | Method + Endpoint | כיוון | תדירות |
-|---|---|---|---|
-| חיוב תשלום | POST `/billing/payments/charge/` | Workies -> Sumit | בזמן אמת |
-| שליפת תשלום | POST `/billing/payments/get/` | Pull | לפי צורך |
-| רשימת תשלומים | POST `/billing/payments/list/` | Pull | כל 30 דק' |
-| אמצעי תשלום ללקוח | POST `/billing/paymentmethods/getforcustomer/` | Pull | לפי צורך |
-| עדכון אמצעי תשלום | POST `/billing/paymentmethods/setforcustomer/` | Push | באישור |
-| חיובים מחזוריים ללקוח | POST `/billing/recurring/listforcustomer/` | Pull | יומי |
-
-## 6.4 Error handling (Sumit)
-- API returns business errors בגוף תשובה: חייבים parser אחיד
-- כשל create document: לא לבצע retry אוטומטי ללא idempotency check
-- כשל charge: retry רק אם מוגדר transient; אחרת מסלול חריגה ידני
-
----
-
-## 7. Zoho CRM Integration Spec (v8)
-מקור:
-- Modules API: `GET /settings/modules`
-- Records API: `GET /{module_api_name}`, `GET /{module_api_name}/{record_id}`
-
-## 7.1 Core Modules for Workies
-- Leads
-- Accounts
-- Contacts
-- Deals
-- Tasks
-
-## 7.2 Endpoints שימושיים
-| מטרה | Endpoint | כיוון | תדירות |
-|---|---|---|---|
-| שליפת מודולים | GET `/crm/v8/settings/modules` | Pull | יומי |
-| שליפת Leads | GET `/crm/v8/Leads` | Pull | כל 5 דק' |
-| שליפת Deal | GET `/crm/v8/Deals/{id}` | Pull | לפי צורך |
-| שליפת Contact | GET `/crm/v8/Contacts/{id}` | Pull | לפי צורך |
-
-## 7.3 Pagination & Limits
-- max 200 records per call
-- עד 2000 עם page רגיל
-- מעבר לכך: page_token flow
-- tokens תקפים לזמן מוגבל (יש לבדוק expiry)
-
-## 7.4 Error handling (Zoho)
-- 401 OAuth scope/token mismatch -> refresh token flow
-- 400 required params / pagination mismatch -> fail fast + alert
-- 429/limit -> backoff & retry window
-
----
-
-## 8. SAP Integration Spec (Phase 1)
-## שלב 1 — Adapter Feed
-| מטרה | פורמט | כיוון | תדירות |
-|---|---|---|---|
-| יצוא חשבוניות מאושרות | CSV/JSON batch | Workies -> SAP Adapter | יומי |
-| יצוא תשלומים | CSV/JSON batch | Workies -> SAP Adapter | יומי |
-| סטטוס קליטה | callback/report | SAP Adapter -> Workies | יומי |
-
-## שלב 2 — API Direct (עתידי)
-- REST/OData endpoints לפי זמינות SAP team
-- replace batch with near real-time sync
-
----
-
-## 9. Sync Matrix (מי מקור אמת)
-| Entity | SoT | Mirror Systems |
+### 4.1 שימושים במסכים
+| מסך | שימוש | Endpoint |
 |---|---|---|
-| Lead | Zoho/Pickspace (להכרעה) | Workies |
-| Customer | Pickspace/Sumit (לפי תחום) | Workies |
-| Contract | Pickspace | Workies |
-| Invoice | Sumit/Pickspace Finance | Workies |
-| Payment | Sumit + Pickspace payments | Workies |
-| Office | Pickspace | Workies |
-| Task | Workies/Monday (transition) | CRM/ops |
+| Pipeline | מקור/העשרת לידים | `GET /crm/v8/Leads` |
+| Pipeline | פרטי הזדמנויות | `GET /crm/v8/Deals` |
+| Workbench | KPI משפך | `GET /crm/v8/Leads`, `Deals` |
+| חוזים וחידושים | תיאום הזדמנויות חידוש | `GET /crm/v8/Deals` (תלויות) |
+
+### 4.2 כללים
+1. יש להגדיר `fields` מפורש בכל קריאת records
+2. pagination:
+   - עד 200 לרשימה
+   - page_token מעל 2000
+3. token refresh בצד backend בלבד
 
 ---
 
-## 10. Webhooks & Eventing
-מומלץ:
-- inbound webhook endpoint ב-Workies לכל מערכת תומכת
-- חתימת webhook validation
-- dead-letter table לאירועים כושלים
+## 5) Connector C — Sumit
+מקורות:
+- `https://app.sumit.co.il/help/developers/swagger/index.html`
+- `https://app.sumit.co.il/swagger/v1/swagger.json`
 
-Events קריטיים:
-1. Lead created/updated
-2. Invoice created/sent/paid
-3. Payment failed/chargeback
-4. Contract approved/declined
+### 5.1 לקוחות
+| מטרה | Endpoint | תדירות | הערות |
+|---|---|---|---|
+| יצירה/איתור לקוח | `POST /accounting/customers/create/` | בזמן אמת | SearchMode |
+| עדכון לקוח | `POST /accounting/customers/update/` | לפי שינוי | sync פרטים |
 
----
+### 5.2 מסמכים (חשבוניות/קבלות)
+| מטרה | Endpoint | תדירות | הערות |
+|---|---|---|---|
+| יצירת מסמך | `POST /accounting/documents/create/` | בזמן אמת | לפי פעולה בגבייה |
+| שליחת מסמך | `POST /accounting/documents/send/` | בזמן אמת | "שלח חשבונית" |
+| פרטי מסמך | `POST /accounting/documents/getdetails/` | on-demand | חלון פרטים |
+| רשימת מסמכים | `POST /accounting/documents/list/` | כל 30 דק' | reconciliation |
+| ביטול מסמך | `POST /accounting/documents/cancel/` | לפי אישור | High Risk flow |
+| חוב לקוח | `POST /accounting/documents/getdebt/` | יומי | Aging |
+| דוח חובות | `POST /accounting/documents/getdebtreport/` | יומי | KPI/דוחות |
 
-## 11. Retry, Idempotency, Dead-letter
-1. Retry:
-   - 1st: 30s
-   - 2nd: 2m
-   - 3rd: 10m
-2. Idempotency:
-   - create invoice/payment/customer חייב מפתח ייחודי
-3. DLQ:
-   - אחרי 3 כשלונות -> DLQ + alert + manual action
-
----
-
-## 12. Monitoring & Alerts
-- Integration success rate by connector
-- Avg latency per endpoint
-- 4xx / 5xx counters
-- queue backlog size
-- failed jobs > threshold alert
+### 5.3 תשלומים וחיובים
+| מטרה | Endpoint | תדירות | הערות |
+|---|---|---|---|
+| חיוב תשלום | `POST /billing/payments/charge/` | בזמן אמת | עדכון תשלום |
+| פרטי תשלום | `POST /billing/payments/get/` | on-demand | reconciliation |
+| רשימת תשלומים | `POST /billing/payments/list/` | כל 30 דק' | גבייה |
+| אמצעי תשלום ללקוח | `POST /billing/paymentmethods/getforcustomer/` | לפי צורך | גבייה |
+| חיובים מחזוריים | `POST /billing/recurring/listforcustomer/` | יומי | לקוחות קבועים |
 
 ---
 
-## 13. Acceptance Criteria (Integration)
-1. כל connector מריץ health check תקופתי
-2. כל פעולה עסקית קריטית ניתנת למעקב ב-Audit + correlationId
-3. כשלונות transient מטופלים אוטומטית עד 3 ניסיונות
-4. אין כפילות רשומות ביצירה חוזרת (idempotent)
-5. ניתן להפיק Failure Report יומי לכל אינטגרציה
+## 6) Connector D — SAP (Phase 1)
+בשלב ראשון: Adapter בלבד (לא קריאה ישירה מה-UI)
+
+| מטרה | כיוון | פורמט | תדירות |
+|---|---|---|---|
+| יצוא חשבוניות מאושרות | Workies -> SAP Adapter | JSON/CSV | יומי |
+| יצוא תשלומים | Workies -> SAP Adapter | JSON/CSV | יומי |
+| קבלת סטטוס קליטה | SAP Adapter -> Workies | JSON callback/file | יומי |
 
 ---
 
-## 14. Open Decisions Before Implementation
-1. Lead SoT final decision: Zoho vs Pickspace
-2. SAP phase-1 data contract approval
-3. Thresholds לאישור פעולות כספיות חריגות
-4. Schedule windows לסנכרונים כבדים (nightly vs near-real-time)
+## 7) Screen-to-Integration Mapping (חד-חד ערכי)
+| מסך מוקאפ | Pickspace | Zoho | Sumit | SAP |
+|---|---|---|---|---|
+| Workbench | כן | כן | כן | לא ישיר |
+| Alerts | כן (events) | כן (events) | כן (events) | כן (קליטה נכשלה) |
+| Pipeline | כן | כן | לא | לא |
+| חוזים וחידושים | כן | כן (Deals renewals) | לא | לא |
+| גבייה | כן | לא | כן | לא ישיר |
+| KPI | כן | כן | כן | כן |
+| Aging | כן | לא | כן | לא |
+| דוח שבועי | כן | כן | כן | לא |
+| P&L חודשי | כן | לא | כן | כן |
+
+---
+
+## 8) Error Handling Policy
+### קטגוריות
+1. Auth (401/403)
+2. Validation (400/422)
+3. Transient (5xx/timeout/network)
+4. Business errors (לדוגמה document already cancelled)
+
+### כללים
+1. Transient -> Retry 3 פעמים (30s, 2m, 10m)
+2. לאחר כישלון -> DLQ + Alert
+3. Business error -> אין retry אוטומטי; נדרש טיפול ידני
+4. כל כשל נרשם ב-`integration_jobs.last_error`
+
+---
+
+## 9) Idempotency Rules
+יש ליישם idempotency key לפחות עבור:
+- יצירת לקוח
+- יצירת מסמך/חשבונית
+- רישום תשלום
+- המרת ליד ללקוח
+
+key מומלץ:
+`{connector}:{operation}:{external_or_business_key}:{date_bucket}`
+
+---
+
+## 10) Observability & Monitoring
+מדדים חובה:
+1. Success rate לכל Connector
+2. P95 latency לכל endpoint קריטי
+3. Queue backlog
+4. Failed jobs/day
+5. זמן התאוששות מתקלת אינטגרציה
+
+Dashboards:
+- Integration health
+- Finance sync health
+- Lead sync health
+
+---
+
+## 11) Acceptance Criteria
+1. כל מסך מוקאפ מקבל נתונים מלפחות מקור API אחד פעיל
+2. כל פעולה כותבת (create/update/cancel/approve) מתועדת ב-Audit
+3. כשל אינטגרציה מופיע במסך Alerts תוך <= 2 דקות
+4. אין כפילויות רשומות בביצוע חוזר של אותה בקשה
+5. קיימת יכולת rerun ידני ל-job שנכשל
+
+---
+
+## 12) החלטות פתוחות לפני Dev Freeze
+1. Source of Truth סופי ל-Leads: Zoho או Pickspace
+2. ספי אישור כספיים (High/Medium) במספרים מדויקים
+3. אילו דוחות KPI יחושבו ב-Workies ואילו ייקראו ישירות ממקור
+4. תזמון יומי מדויק לייצוא SAP

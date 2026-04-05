@@ -22,6 +22,8 @@
 - [Backlog מסודר לפי ספרינטים S0-S7](./WORKIES_SPRINT_BACKLOG_S0_S7_HE.md)
 - [Integration Spec ל-Pickspace / Zoho / Sumit / SAP](./WORKIES_INTEGRATION_SPEC_HE.md)
 
+עדכון אחרון: חבילת מסמכי הפיתוח עודכנה לפי `workies_mockup_vector.pdf` (Mockup v2), כולל מיפוי מסכים מלא ל-PRD, RBAC, Data Model, Sprint Backlog ו-Integration Spec.
+
 מסמך זה כולל:
 - ארכיטקטורת יעד דינמית
 - מנגנון אוטומציה תחת אישור משתמש (Human-in-the-Loop)

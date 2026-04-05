@@ -1,269 +1,238 @@
-# WORKIES AIO — Data Model (Initial)
+# WORKIES AIO — Data Model Initial (Mockup Aligned)
 
 ## 1. מטרת המסמך
-הגדרת מודל נתונים ראשוני לפיתוח.  
-לא ERD מלא, אלא פירוט ישויות, שדות, טיפוסים, קשרים ומפת מקור אמת.
+להגדיר מבנה נתונים ראשוני (יישויות, שדות, קשרים) שמכסה את כל מסכי המוקאפ:
+- Workbench
+- התראות
+- גבייה
+- Pipeline
+- חוזים וחידושים
+- KPI
+- Aging
+- דוח שבועי
+- P&L חודשי
 
 ---
 
-## 2. עקרונות
-1. לכל ישות יש `id` פנימי (UUID) + `external_id` לפי מערכת חיצונית אם קיים.
-2. כל טבלה כוללת `created_at`, `updated_at`, `created_by`, `updated_by`.
-3. סטטוסים מוגדרים כ-enum.
-4. פעולות רגישות נרשמות ב-AuditEvent.
+## 2. עקרונות מודל
+1. לכל ישות מזהה פנימי `uuid`.
+2. לכל ישות נתמכת באינטגרציה שדות `external_id_*`.
+3. כל ישות כוללת `created_at`, `updated_at`.
+4. סטטוסים מוגדרים כ-enum.
+5. כל פעולה רגישה נרשמת ב-AuditEvent.
 
 ---
 
-## 3. ישויות ליבה
+## 3. ישויות ליבה (Core)
 
-## 3.1 Customer (לקוח)
-תיאור: ישות מאוחדת ללקוח עסקי/פרטי.
-
-שדות:
+## 3.1 User
 - id (uuid, pk)
-- external_id_pickspace (string, nullable)
-- external_id_zoho (string, nullable)
-- external_id_sumit_customer (string, nullable)
-- customer_type (enum: company, individual)
-- name (string, required)
-- company_number (string, nullable)
-- email (string, nullable)
-- phone (string, nullable)
-- status (enum: active, inactive, blocked)
-- billing_address (json, nullable)
-- notes (text, nullable)
-- created_at, updated_at
-
-קשרים:
-- Customer 1:N Contract
-- Customer 1:N Invoice
-- Customer 1:N Payment
-- Customer 1:N Lead (אחרי המרה, optional)
-
----
-
-## 3.2 Lead (ליד)
-תיאור: הזדמנות מכירה לפני המרה ללקוח.
-
-שדות:
-- id (uuid, pk)
-- external_id_pickspace (string, nullable)
-- external_id_zoho (string, nullable)
-- source (string)
-- first_name (string)
-- last_name (string)
-- company_name (string, nullable)
-- email (string, nullable)
-- phone (string, nullable)
-- pipeline_id (uuid, fk)
-- pipeline_stage_id (uuid, fk)
-- owner_user_id (uuid, fk User)
-- score (int, nullable)
-- status (enum: open, qualified, won, lost, converted)
-- last_contact_at (timestamp, nullable)
-- converted_customer_id (uuid, fk Customer, nullable)
-- created_at, updated_at
-
-קשרים:
-- Lead N:1 Pipeline
-- Lead N:1 PipelineStage
-- Lead N:1 User (owner)
-- Lead 0..1 -> Customer
-
----
-
-## 3.3 Pipeline
-שדות:
-- id (uuid, pk)
-- external_id_pickspace (string, nullable)
-- name (string)
-- is_default (boolean)
+- full_name (string)
+- email (string, unique)
+- role (enum: management, sales, marketing, finance, operations, admin)
 - is_active (boolean)
 - created_at, updated_at
 
-קשרים:
-- Pipeline 1:N PipelineStage
-- Pipeline 1:N Lead
+## 3.2 Alert
+תומך במסך "התראות".
+- id (uuid, pk)
+- severity (enum: low, medium, high)
+- module (enum: collections, sales, contracts, operations, reports, kpi, system)
+- title (string)
+- body (text)
+- related_entity_type (enum: invoice, lead, contract, task, kpi_snapshot, report, payment, customer)
+- related_entity_id (uuid/string)
+- due_at (timestamp, nullable)
+- action_label (string, nullable)  // למשל: "שלח תזכורת"
+- action_route (string, nullable)
+- source (enum: rule_engine, integration, manual)
+- is_read (boolean, default false)
+- created_at
 
-## 3.4 PipelineStage
-שדות:
+## 3.3 Customer
 - id (uuid, pk)
 - external_id_pickspace (string, nullable)
-- pipeline_id (uuid, fk)
+- external_id_zoho_account (string, nullable)
+- external_id_sumit_customer (string, nullable)
 - name (string)
-- order_index (int)
-- probability (int, nullable, 0-100)
-- is_closed_stage (boolean)
+- company_number (string, nullable)
+- email (string, nullable)
+- phone (string, nullable)
+- status (enum: active, inactive, at_risk)
 - created_at, updated_at
 
----
-
-## 3.5 Office (משרד/יחידה)
-שדות:
-- id (uuid, pk)
-- external_id_pickspace (string)
-- location_id (string/uuid, nullable)
-- code (string, nullable)
-- name (string)
-- office_type (enum: private_office, desk, meeting_room, other)
-- status (enum: available, occupied, reserved, maintenance)
-- size_sqm (decimal, nullable)
-- floor (string, nullable)
-- created_at, updated_at
-
-קשרים:
-- Office 1:N Contract
-- Office 1:N Invoice (דרך הקצאה/חיוב)
-
----
-
-## 3.6 Contract (חוזה)
-שדות:
+## 3.4 Office
 - id (uuid, pk)
 - external_id_pickspace (string, nullable)
-- customer_id (uuid, fk)
-- office_id (uuid, fk)
+- office_name (string)
+- location_name (string, nullable)
+- office_type (enum: office, desk, meeting_room, other)
+- occupancy_status (enum: occupied, available, reserved, maintenance)
+- created_at, updated_at
+
+## 3.5 Contract
+תומך במסך "חוזים וחידושים".
+- id (uuid, pk)
+- external_id_pickspace (string, nullable)
+- customer_id (uuid, fk -> Customer)
+- office_id (uuid, fk -> Office, nullable)
 - contract_number (string, nullable)
 - start_date (date)
-- end_date (date, nullable)
-- billing_cycle (enum: monthly, quarterly, yearly)
-- amount (decimal)
+- end_date (date)
+- monthly_amount (decimal)
 - currency (string, default ILS)
-- discount_percent (decimal, nullable)
-- status (enum: draft, active, suspended, terminated, expired)
-- signed_at (timestamp, nullable)
+- renewal_status (enum: active, renewal_required, proposal_sent, signed, leaving, expired)
+- renewal_risk_level (enum: low, medium, high)
+- next_action_date (date, nullable)
 - created_at, updated_at
 
-קשרים:
-- Contract N:1 Customer
-- Contract N:1 Office
-- Contract 1:N Invoice
+## 3.6 Lead
+תומך במסך Pipeline.
+- id (uuid, pk)
+- external_id_pickspace (string, nullable)
+- external_id_zoho (string, nullable)
+- name (string)
+- company_name (string, nullable)
+- email (string, nullable)
+- phone (string, nullable)
+- pipeline_id (uuid, fk -> Pipeline)
+- stage_id (uuid, fk -> PipelineStage)
+- expected_monthly_value (decimal, nullable)
+- expected_arr (decimal, nullable)
+- is_hot (boolean, default false)
+- owner_user_id (uuid, fk -> User)
+- status (enum: open, won, lost, converted)
+- created_at, updated_at
 
----
+## 3.7 Pipeline
+- id (uuid, pk)
+- external_id_pickspace (string, nullable)
+- name (string)
+- is_active (boolean)
+- created_at, updated_at
 
-## 3.7 Invoice (חשבונית/מסמך חיוב)
-שדות:
+## 3.8 PipelineStage
+- id (uuid, pk)
+- pipeline_id (uuid, fk -> Pipeline)
+- external_id_pickspace (string, nullable)
+- stage_name (enum: new_inquiry, proposal_sent, negotiation, closed_won, closed_lost)
+- sort_order (int)
+- created_at, updated_at
+
+## 3.9 Invoice
+תומך במסכי גבייה + Aging.
 - id (uuid, pk)
 - external_id_pickspace (string, nullable)
 - external_id_sumit_document (string, nullable)
-- customer_id (uuid, fk)
-- contract_id (uuid, fk, nullable)
+- customer_id (uuid, fk -> Customer)
+- contract_id (uuid, fk -> Contract, nullable)
+- office_id (uuid, fk -> Office, nullable)
 - invoice_number (string, nullable)
 - issue_date (date)
-- due_date (date, nullable)
+- due_date (date)
 - total_amount (decimal)
-- currency (string, default ILS)
-- status (enum: draft, issued, sent, partially_paid, paid, overdue, cancelled)
-- payment_status (enum: unpaid, partial, paid, failed)
-- sent_at (timestamp, nullable)
-- cancelled_at (timestamp, nullable)
+- paid_amount (decimal, default 0)
+- balance_amount (decimal)
+- status (enum: open, partial, paid, cancelled, overdue)
+- aging_bucket (enum: d0_30, d31_60, d61_90, d90_plus)
 - created_at, updated_at
 
-קשרים:
-- Invoice N:1 Customer
-- Invoice N:1 Contract (optional)
-- Invoice 1:N InvoiceLine
-- Invoice 1:N PaymentAllocation
-
-## 3.8 InvoiceLine
-שדות:
-- id (uuid, pk)
-- invoice_id (uuid, fk)
-- description (string)
-- quantity (decimal)
-- unit_price (decimal)
-- vat_rate (decimal, nullable)
-- line_total (decimal)
-- created_at, updated_at
-
----
-
-## 3.9 Payment (תשלום)
-שדות:
+## 3.10 Payment
 - id (uuid, pk)
 - external_id_pickspace (string, nullable)
 - external_id_sumit_payment (string, nullable)
-- customer_id (uuid, fk)
+- customer_id (uuid, fk -> Customer)
 - amount (decimal)
-- currency (string, default ILS)
 - payment_date (timestamp)
-- method (enum: card, bank_transfer, cash, check, direct_debit, other)
-- status (enum: initiated, succeeded, failed, chargeback, refunded)
+- method (enum: card, direct_debit, transfer, cash, check, other)
+- status (enum: success, failed, chargeback, refunded, pending)
 - reference_number (string, nullable)
-- failure_reason (string, nullable)
 - created_at, updated_at
 
-קשרים:
-- Payment N:1 Customer
-- Payment N:M Invoice דרך PaymentAllocation
-
-## 3.10 PaymentAllocation
-שדות:
+## 3.11 Task
+משימות יומיות ל-Workbench.
 - id (uuid, pk)
-- payment_id (uuid, fk)
-- invoice_id (uuid, fk)
-- allocated_amount (decimal)
-- created_at, updated_at
-
----
-
-## 3.11 Task (משימה תפעולית)
-שדות:
-- id (uuid, pk)
-- entity_type (enum: lead, customer, invoice, payment, contract, office, system)
-- entity_id (uuid/string)
 - title (string)
 - description (text, nullable)
-- assignee_user_id (uuid, fk User)
-- priority (enum: low, medium, high, critical)
-- status (enum: open, in_progress, blocked, done, cancelled)
-- due_at (timestamp, nullable)
+- module (enum: sales, collections, contracts, operations, reports)
+- entity_type (string)
+- entity_id (uuid/string)
+- priority (enum: critical, urgent, normal)
+- status (enum: open, in_progress, done, cancelled)
+- due_date (date, nullable)
+- assignee_user_id (uuid, fk -> User)
 - created_at, updated_at
 
----
-
-## 3.12 ApprovalRequest (בקשת אישור)
-שדות:
+## 3.12 KPI Snapshot
+תומך מסכי KPI / Workbench.
 - id (uuid, pk)
-- action_type (enum: discount_change, invoice_cancel, write_off, payment_refund, contract_change, other)
-- entity_type (enum: invoice, payment, contract, customer, lead, system)
+- period_type (enum: daily, weekly, monthly)
+- period_label (string)  // e.g. 2026-03
+- metric_key (string)    // e.g. collection_rate
+- metric_name (string)
+- actual_value (decimal)
+- target_value (decimal, nullable)
+- delta_percent (decimal, nullable)
+- status (enum: on_track, near_target, off_track)
+- created_at
+
+## 3.13 Weekly Report
+- id (uuid, pk)
+- week_label (string) // e.g. 2026-W11
+- generated_at (timestamp)
+- generated_by (enum: system, user)
+- report_file_url (string, nullable)
+- summary_json (json)
+- created_at
+
+## 3.14 Monthly PnL Report
+- id (uuid, pk)
+- month_label (string) // e.g. 2026-02
+- generated_at (timestamp)
+- revenue_total (decimal)
+- expense_total (decimal)
+- gross_profit (decimal)
+- profit_margin_percent (decimal)
+- report_file_url (string, nullable)
+- categories_json (json) // breakdown by category
+- created_at
+
+## 3.15 ApprovalRequest
+תומך זרימות אישור חריגות.
+- id (uuid, pk)
+- action_type (enum: invoice_cancel, payment_adjustment, contract_change, write_off, other)
+- entity_type (string)
 - entity_id (uuid/string)
 - risk_level (enum: low, medium, high)
-- requested_by (uuid, fk User)
-- approver_user_id (uuid, fk User, nullable)
+- requested_by_user_id (uuid, fk -> User)
+- approver_user_id (uuid, fk -> User, nullable)
 - status (enum: pending, approved, rejected, expired)
 - reason (text, nullable)
 - approved_at (timestamp, nullable)
 - rejected_at (timestamp, nullable)
 - created_at, updated_at
 
----
-
-## 3.13 AuditEvent
-שדות:
+## 3.16 AuditEvent
 - id (uuid, pk)
-- user_id (uuid, fk User, nullable)
+- user_id (uuid, nullable)
 - action (string)
 - entity_type (string)
 - entity_id (string)
 - before_json (json, nullable)
 - after_json (json, nullable)
+- source_system (enum: workies, pickspace, zoho, sumit, sap)
 - correlation_id (string, nullable)
-- source_system (enum: workies, pickspace, zoho, sumit, sap, other)
 - created_at
 
----
-
-## 3.14 IntegrationJob
-שדות:
+## 3.17 IntegrationJob
 - id (uuid, pk)
 - connector (enum: pickspace, zoho, sumit, sap)
-- direction (enum: inbound, outbound, bidirectional)
 - job_type (string)
-- status (enum: queued, running, succeeded, failed, retried)
-- payload_ref (string/json)
-- attempts (int)
+- direction (enum: inbound, outbound, bidirectional)
+- status (enum: queued, running, succeeded, failed, retrying, dead_letter)
+- attempts (int, default 0)
 - last_error (text, nullable)
+- payload_ref (string/json, nullable)
 - scheduled_at (timestamp, nullable)
 - started_at (timestamp, nullable)
 - finished_at (timestamp, nullable)
@@ -271,55 +240,50 @@
 
 ---
 
-## 3.15 User
-שדות:
-- id (uuid, pk)
-- external_auth_id (string, nullable)
-- full_name (string)
-- email (string, unique)
-- role_id (uuid, fk Role)
-- is_active (boolean)
-- last_login_at (timestamp, nullable)
-- created_at, updated_at
-
-## 3.16 Role
-שדות:
-- id (uuid, pk)
-- name (enum: management, sales, marketing, finance, operations, admin)
-- description (string, nullable)
-- created_at, updated_at
+## 4. קשרים מרכזיים
+1. Customer 1:N Contract
+2. Customer 1:N Invoice
+3. Customer 1:N Payment
+4. Office 1:N Contract
+5. Contract 1:N Invoice
+6. Pipeline 1:N PipelineStage
+7. PipelineStage 1:N Lead
+8. ApprovalRequest N:1 User (requester/approver)
+9. Task N:1 User (assignee)
+10. Alert קשור לכל ישות עסקית דרך related_entity_type/id
 
 ---
 
-## 4. קשרים מרכזיים (Summary)
-1. Customer -> Contracts -> Invoices -> Payments
-2. Leads -> Pipeline -> Conversion -> Customer
-3. Offices <- Contracts (שיוך יחידה לחוזה)
-4. ApprovalRequest נקשר ל-Invoice/Payment/Contract לפי פעולה
-5. AuditEvent ו-IntegrationJob חוצי ישויות
+## 5. מפת Source of Truth (גרסה ראשונית)
+- Leads/Pipeline: Zoho CRM או Pickspace (נעילה לפני פיתוח)
+- Customers/Contracts/Offices: Pickspace
+- Invoices/Payments: Sumit (חשבונאי) + Pickspace (תפעולי)
+- KPI/Reports: Workies (מחושב מאוחד)
 
 ---
 
-## 5. Source of Truth (גרסה ראשונית)
-- לקוח/חוזה/משרד: Pickspace
-- ליד/Pipeline: Zoho CRM או Pickspace (החלטה סופית נדרשת)
-- מסמכי חיוב/תשלומים: Sumit
-- ישות מאוחדת פנים-מערכתית: Workies DB
+## 6. שדות חובה מינימליים למסכי המוקאפ
+## Workbench
+- Task.title, Task.priority, Task.due_date, Alert.severity
+- KPI Snapshot (רווח, גבייה, תפוסה, חריגות)
+
+## גבייה / Aging
+- Invoice.invoice_number, customer_id, total_amount, paid_amount, balance_amount, due_date, aging_bucket, status
+
+## Pipeline
+- Lead.name, stage_id, expected_monthly_value, expected_arr, is_hot, last_activity
+
+## חוזים וחידושים
+- Contract.end_date, renewal_status, monthly_amount, next_action_date
+
+## דוחות
+- WeeklyReport.summary_json
+- MonthlyPnLReport.revenue_total, expense_total, gross_profit, categories_json
 
 ---
 
-## 6. אינדקסים מומלצים (ביצועים)
-- Lead: (status, pipeline_stage_id, owner_user_id, updated_at)
-- Invoice: (status, due_date, customer_id, issue_date)
-- Payment: (status, payment_date, customer_id)
-- ApprovalRequest: (status, risk_level, approver_user_id, created_at)
-- AuditEvent: (entity_type, entity_id, created_at)
-- IntegrationJob: (connector, status, scheduled_at)
-
----
-
-## 7. החלטות פתוחות לפני נעילת DB Schema
-1. מקור אמת סופי ל-Leads (Zoho vs Pickspace)
-2. שימוש ב-SAP ב-MVP: write-through vs export-only
-3. ספי סיכון כספי מספריים (בשקלים/אחוזים)
-4. אחידות מזהים חיצוניים (string vs numeric normalization)
+## 7. החלטות פתוחות לפני נעילת Schema
+1. הגדרת ספי Aging מדויקים אם due_date בעתיד (pre-due bucket).
+2. האם לשמור Monthly KPI כחישוב בזמן אמת או snapshot nightly בלבד.
+3. זיהוי חד-ערכי לקוח (company_number מול email/phone fallback).
+4. ניהול currency במקרה לקוחות בינלאומיים (כרגע ILS default).
