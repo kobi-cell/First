@@ -22,8 +22,10 @@
 - [Backlog מסודר לפי ספרינטים S0-S7](./WORKIES_SPRINT_BACKLOG_S0_S7_HE.md)
 - [Integration Spec ל-Pickspace / Zoho / Sumit / SAP](./WORKIES_INTEGRATION_SPEC_HE.md)
 - [טבלת Popups מלאה (8 מסכים קופצים — טריגר, שדות, ולידציות, RBAC)](./WORKIES_POPUP_TABLE_HE.md)
+- [דוקומנטציה מלאה לכל פונקציות Pickspace API (400 operations)](./WORKIES_PICKSPACE_API_DOCUMENTATION_HE.md)
+- [קטלוג פונקציות Pickspace בפורמט CSV (למיפוי/QA/פיתוח)](./WORKIES_PICKSPACE_API_FUNCTIONS_CATALOG.csv)
 
-עדכון אחרון: PRD מוזג לגרסת v3 על בסיס `prd_workies.pdf` + `workies_mockup_vector.pdf` + `workies_mockup_full.pdf`, כולל מיפוי מלא ל-9 מסכים + 8 Popups וסעיף החלטות שמסומנות "דורש אישור ניהולי".
+עדכון אחרון: PRD מוזג לגרסת v3 על בסיס `prd_workies.pdf` + `workies_mockup_vector.pdf` + `workies_mockup_full.pdf`, ונוספה דוקומנטציה מלאה לכל פונקציות Pickspace API מתוך Swagger חי.
 
 מסמך זה כולל:
 - ארכיטקטורת יעד דינמית
