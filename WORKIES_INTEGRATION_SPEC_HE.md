@@ -136,6 +136,18 @@
 
 ---
 
+## 6.1) Digital Signature Provider (DocuSign) — עבור POP-04
+רכיב זה נדרש למסך הקופץ "שליחת הצעת מחיר לחתימה דיגיטלית".
+
+| מטרה | כיוון | תדירות |
+|---|---|---|
+| יצירת בקשת חתימה | Workies -> Signature Provider | בזמן אמת |
+| קבלת סטטוס חתימה (sent/viewed/signed/declined) | Signature Provider -> Workies (webhook/poll) | near real-time |
+
+כלל מימוש: מצב חתימה מעדכן Pipeline + Alert feed + Audit.
+
+---
+
 ## 7) Screen-to-Integration Mapping (חד-חד ערכי)
 | מסך מוקאפ | Pickspace | Zoho | Sumit | SAP |
 |---|---|---|---|---|
@@ -148,6 +160,32 @@
 | Aging | כן | לא | כן | לא |
 | דוח שבועי | כן | כן | כן | לא |
 | P&L חודשי | כן | לא | כן | כן |
+
+---
+
+## 7.1) Popup-to-Integration Mapping (8 Popups)
+| Popup | פעולה | אינטגרציות עיקריות |
+|---|---|---|
+| POP-01 שליחת תזכורת תשלום | שליחה ללקוח (SMS/Email) | Workies Notification Service (פנימי), Log ל-Audit |
+| POP-02 חשבונית חדשה | הפקת חשבונית | Sumit `documents/create`, Pickspace invoices sync |
+| POP-03 עדכון הסדר תשלום | יצירת/עדכון תוכנית תשלומים | Workies DB (PaymentPlan), Sumit recurring list/check לפי צורך |
+| POP-04 שליחת הצעת מחיר לחתימה | שליחת מסמך לחתימה דיגיטלית | ספק חתימה דיגיטלית (DocuSign), עדכון Lead/Deal ב-Zoho/Pickspace |
+| POP-05 עדכון מצב חידוש חוזה | שמירת סטטוס מו\"מ ושליחת הצעה | Pickspace contracts update, Zoho deals update (אם SoT ב-Zoho) |
+| POP-06 עדכון הסכם שנחתם | update + אוטומציות נלוות | Pickspace contract status, Sumit first invoice, Office occupancy update, onboarding task create |
+| POP-07 עדכון סיום הסכם/עזיבה | סגירת חוזה ושחרור משרד | Pickspace contract end + office release, Sumit stop future billing, create collection task |
+| POP-08 אישור P&L חודשי | אישור ונעילת דוח | Workies approval/audit, SAP export eligibility update |
+
+---
+
+## 7.2) Orchestration Requirements for Critical Popups
+Critical popups: POP-06, POP-07, POP-08
+
+1. כל פעולה תרוץ עם correlation ID אחיד לכל תתי-השלבים.
+2. יש ליישם Saga/compensation כאשר חלק מהשלבים נכשל:
+   - POP-06: אם הפקת חשבונית נכשלה אחרי עדכון חוזה -> סימון partial + משימת טיפול.
+   - POP-07: אם עצירת חיובים נכשלה -> אין סימון offboarding כ-completed.
+   - POP-08: אם approval נשמר אך export ל-SAP נכשל -> דוח נשאר Approved עם sync_status=failed.
+3. חובה להציג למשתמש סטטוס תהליך (success/partial/failed) בסיום popup action.
 
 ---
 
@@ -199,6 +237,7 @@ Dashboards:
 3. כשל אינטגרציה מופיע במסך Alerts תוך <= 2 דקות
 4. אין כפילויות רשומות בביצוע חוזר של אותה בקשה
 5. קיימת יכולת rerun ידני ל-job שנכשל
+6. כל POP-01..POP-08 ממופה לאינטגרציה/אורקסטרציה עם תרחיש כשל מוגדר
 
 ---
 

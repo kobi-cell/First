@@ -100,6 +100,7 @@
 - expected_monthly_value (decimal, nullable)
 - expected_arr (decimal, nullable)
 - is_hot (boolean, default false)
+- last_activity_at (timestamp, nullable)
 - owner_user_id (uuid, fk -> User)
 - status (enum: open, won, lost, converted)
 - created_at, updated_at
@@ -238,6 +239,90 @@
 - finished_at (timestamp, nullable)
 - created_at, updated_at
 
+## 3.18 CommunicationLog
+תומך POP-01 (שליחת תזכורת תשלום).
+- id (uuid, pk)
+- customer_id (uuid, fk -> Customer)
+- invoice_id (uuid, fk -> Invoice, nullable)
+- channel (enum: sms, email, sms_email)
+- template_key (string)
+- message_preview (text, nullable)
+- recipients_json (json)
+- status (enum: queued, sent, failed)
+- sent_at (timestamp, nullable)
+- error_text (text, nullable)
+- created_by_user_id (uuid, fk -> User)
+- created_at, updated_at
+
+## 3.19 PaymentPlan
+תומך POP-03 (עדכון הסדר תשלום).
+- id (uuid, pk)
+- customer_id (uuid, fk -> Customer)
+- total_debt_amount (decimal)
+- installments_count (int)
+- first_due_date (date)
+- installment_amount (decimal)
+- status (enum: draft, active, completed, broken, cancelled)
+- notes (text, nullable)
+- created_by_user_id (uuid, fk -> User)
+- created_at, updated_at
+
+## 3.20 SignatureRequest
+תומך POP-04 (הצעת מחיר לחתימה דיגיטלית).
+- id (uuid, pk)
+- lead_id (uuid, fk -> Lead, nullable)
+- contract_id (uuid, fk -> Contract, nullable)
+- provider (enum: docusign, other)
+- recipient_email (string)
+- document_ref (string, nullable)
+- status (enum: draft, sent, viewed, signed, declined, expired, failed)
+- sent_at (timestamp, nullable)
+- signed_at (timestamp, nullable)
+- created_by_user_id (uuid, fk -> User)
+- created_at, updated_at
+
+## 3.21 RenewalUpdate
+תומך POP-05 (עדכון מצב חידוש חוזה).
+- id (uuid, pk)
+- contract_id (uuid, fk -> Contract)
+- negotiation_status (enum: proposal_sent, waiting_signature, negotiation, approved, rejected)
+- proposed_term_months (int, nullable)
+- proposed_monthly_amount (decimal, nullable)
+- next_meeting_at (timestamp, nullable)
+- notes (text, nullable)
+- created_by_user_id (uuid, fk -> User)
+- created_at, updated_at
+
+## 3.22 OffboardingCase
+תומך POP-07 (עדכון סיום הסכם/עזיבה).
+- id (uuid, pk)
+- contract_id (uuid, fk -> Contract)
+- customer_id (uuid, fk -> Customer)
+- office_id (uuid, fk -> Office, nullable)
+- leave_reason (string)
+- planned_vacate_date (date)
+- refundable_deposit_amount (decimal, nullable)
+- open_debt_amount (decimal, default 0)
+- status (enum: draft, pending_debt_closure, approved, completed, cancelled)
+- notes (text, nullable)
+- created_by_user_id (uuid, fk -> User)
+- created_at, updated_at
+
+## 3.23 PnLApproval
+תומך POP-08 (אישור P&L חודשי).
+- id (uuid, pk)
+- monthly_pnl_report_id (uuid, fk -> Monthly PnL Report)
+- period_label (string)
+- revenue_total (decimal)
+- expense_total (decimal)
+- net_profit (decimal)
+- margin_percent (decimal)
+- approver_user_id (uuid, fk -> User)
+- decision (enum: approved, rejected)
+- decision_notes (text, nullable)
+- decided_at (timestamp)
+- created_at, updated_at
+
 ---
 
 ## 4. קשרים מרכזיים
@@ -251,6 +336,11 @@
 8. ApprovalRequest N:1 User (requester/approver)
 9. Task N:1 User (assignee)
 10. Alert קשור לכל ישות עסקית דרך related_entity_type/id
+11. PaymentPlan N:1 Customer
+12. SignatureRequest N:1 Lead/Contract
+13. RenewalUpdate N:1 Contract
+14. OffboardingCase N:1 Contract + Customer
+15. PnLApproval N:1 Monthly PnL Report
 
 ---
 
@@ -275,6 +365,14 @@
 
 ## חוזים וחידושים
 - Contract.end_date, renewal_status, monthly_amount, next_action_date
+- RenewalUpdate.negotiation_status, proposed_monthly_amount, next_meeting_at
+
+## פופאפים תפעוליים
+- POP-01: CommunicationLog.channel, template_key, recipients_json
+- POP-03: PaymentPlan.installments_count, first_due_date
+- POP-04: SignatureRequest.provider, recipient_email, status
+- POP-07: OffboardingCase.leave_reason, planned_vacate_date, open_debt_amount
+- POP-08: PnLApproval.decision, approver_user_id, decided_at
 
 ## דוחות
 - WeeklyReport.summary_json

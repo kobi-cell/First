@@ -152,6 +152,22 @@
 
 ---
 
+## 10.1) Popup Coverage Plan (POP-01..POP-08)
+| Popup ID | תיאור | ספרינט יעד | Story IDs |
+|---|---|---|---|
+| POP-01 | שליחת תזכורת תשלום | S3 | US-019, US-023 |
+| POP-02 | חשבונית חדשה | S3 + S6 | US-018, US-036 |
+| POP-03 | עדכון הסדר תשלום | S3 | US-022, US-024 |
+| POP-04 | הצעת מחיר לחתימה דיגיטלית | S2 + S5 | US-013, US-014, US-033 |
+| POP-05 | עדכון מצב חידוש חוזה | S2 | US-015, US-016, US-017 |
+| POP-06 | עדכון הסכם שנחתם + פעולות נלוות | S2 + S6 | US-016, US-037, US-040 |
+| POP-07 | עדכון סיום הסכם/עזיבה | S2 + S6 | US-016, US-037, US-038 |
+| POP-08 | אישור P&L חודשי | S4 + S6 | US-028, US-037, US-038 |
+
+הערת ביצוע: פופאפים POP-06/07/08 מסומנים כ-critical וכוללים תרחישי E2E מחייבים ב-S7.
+
+---
+
 ## 11) Summary
 | Sprint | SP |
 |---|---:|
@@ -182,6 +198,7 @@
 - Acceptance criteria מוגדר
 - API dependencies ידועים
 - Owner ברור
+- כאשר רלוונטי: Popup ID מוגדר ומקושר ל-Story
 
 ## 14) Definition of Done
 - Dev complete + QA pass
@@ -189,3 +206,4 @@
 - Audit events emitted
 - API contracts updated
 - Monitoring added
+- Popup flows covered (open/save/cancel/error)
