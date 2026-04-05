@@ -1,0 +1,176 @@
+{
+  "info": {
+    "name": "Workies Pickspace - Move In/Out (Next 30 Days)",
+    "_postman_id": "7f4f3ed3-0a8d-4e85-8f3f-86a1db7b0f8a",
+    "description": "Postman collection for Pickspace endpoint: /api-v2/offices-history/dashboard-move-in-out. Calculates from=today and to=+30 days automatically in pre-request script.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get offices move-in/out (next 30 days)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Computes dynamic date range for next 30 days",
+              "const now = new Date();",
+              "const to = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));",
+              "",
+              "const pad = (n) => String(n).padStart(2, '0');",
+              "const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;",
+              "",
+              "pm.collectionVariables.set('from', fmt(now));",
+              "pm.collectionVariables.set('to', fmt(to));",
+              "",
+              "// Optional: comma separated IDs, e.g. \"1,2,3\"",
+              "if (!pm.collectionVariables.get('locationIdsCsv')) {",
+              "  pm.collectionVariables.set('locationIdsCsv', '');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response is JSON', function () {",
+              "  pm.response.to.be.json;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/offices-history/dashboard-move-in-out?from={{from}}&to={{to}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "offices-history",
+            "dashboard-move-in-out"
+          ],
+          "query": [
+            {
+              "key": "from",
+              "value": "{{from}}"
+            },
+            {
+              "key": "to",
+              "value": "{{to}}"
+            }
+          ]
+        },
+        "description": "Returns offices with move-in/move-out information between from/to dates.\n\nOptional location filtering:\n- Set collection variable locationIdsCsv to values like: 1,2,3\n- Then add query params manually as locationIds[]=1&locationIds[]=2..."
+      },
+      "response": []
+    },
+    {
+      "name": "Get offices move-in/out (manual with locationIds[])",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Optional helper: if from/to are empty, set defaults",
+              "const now = new Date();",
+              "const to = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));",
+              "const pad = (n) => String(n).padStart(2, '0');",
+              "const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;",
+              "if (!pm.collectionVariables.get('from')) pm.collectionVariables.set('from', fmt(now));",
+              "if (!pm.collectionVariables.get('to')) pm.collectionVariables.set('to', fmt(to));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/offices-history/dashboard-move-in-out?from={{from}}&to={{to}}&locationIds[]=1&locationIds[]=2",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "offices-history",
+            "dashboard-move-in-out"
+          ],
+          "query": [
+            {
+              "key": "from",
+              "value": "{{from}}"
+            },
+            {
+              "key": "to",
+              "value": "{{to}}"
+            },
+            {
+              "key": "locationIds[]",
+              "value": "1"
+            },
+            {
+              "key": "locationIds[]",
+              "value": "2"
+            }
+          ]
+        },
+        "description": "Use this request when you want explicit location filtering.\nReplace locationIds[] values with your actual IDs."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://workies.pickspace.com/api-v2"
+    },
+    {
+      "key": "apiKey",
+      "value": ""
+    },
+    {
+      "key": "from",
+      "value": ""
+    },
+    {
+      "key": "to",
+      "value": ""
+    },
+    {
+      "key": "locationIdsCsv",
+      "value": ""
+    }
+  ]
+}
