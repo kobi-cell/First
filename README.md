@@ -23,7 +23,7 @@
 - [Integration Spec ל-Pickspace / Zoho / Sumit / SAP](./WORKIES_INTEGRATION_SPEC_HE.md)
 - [טבלת Popups מלאה (8 מסכים קופצים — טריגר, שדות, ולידציות, RBAC)](./WORKIES_POPUP_TABLE_HE.md)
 
-עדכון אחרון: חבילת מסמכי הפיתוח עודכנה לפי `workies_mockup_vector.pdf` + `workies_mockup_full.pdf` (Mockup v2), כולל מיפוי מסכים מלא + 8 מסכי Popup ל-PRD, RBAC, Data Model, Sprint Backlog ו-Integration Spec.
+עדכון אחרון: PRD מוזג לגרסת v3 על בסיס `prd_workies.pdf` + `workies_mockup_vector.pdf` + `workies_mockup_full.pdf`, כולל מיפוי מלא ל-9 מסכים + 8 Popups וסעיף החלטות שמסומנות "דורש אישור ניהולי".
 
 מסמך זה כולל:
 - ארכיטקטורת יעד דינמית
