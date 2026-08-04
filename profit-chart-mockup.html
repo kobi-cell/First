@@ -6,10 +6,12 @@
 <title>רווח לפי תקופה — מוקאפ</title>
 <!--
   מוקאפ: הכנסות / הוצאות / רווח לפי תקופה, חתך חודשי, ברירת מחדל 13 חודשים אחרונים.
+  שני מבטים: "סיכום" (שלוש הסדרות) ו"לפי קודים" — בחירת קודי חשבון של הכנסות או
+  הוצאות, בגרף מאוחד או בגרף נפרד לכל קוד.
   הנתונים כאן הם נתוני דמו בלבד, במבנה המדמה תוצאת שאילתה מ-SAP:
-  אגרגציה חודשית של ACDOCA (יומן אוניברסלי) — הכנסות מול עלויות לפי FISCYEARPER,
-  או צריכה מ-CDS view / OData ייעודי. בחיבור אמיתי מחליפים את המערך SAP_DATA
-  בקריאת fetch לשירות.
+  אגרגציה חודשית של ACDOCA (יומן אוניברסלי) לפי חשבון (RACCT) ותקופה (FISCYEARPER),
+  או צריכה מ-CDS view / OData ייעודי. בחיבור אמיתי מחליפים את SAP_DATA ואת פירוק
+  הקודים בקריאת fetch לשירות.
 -->
 <style>
   :root {
@@ -144,7 +146,25 @@
   }
   .view-btn:hover { background: var(--hover-wash); }
 
-  /* מקרא אינטראקטיבי — בחירת הסדרות המוצגות */
+  /* סרגל מבט "לפי קודים": מדד, אופן הצגה ובחירת קודים */
+  .codes-bar {
+    display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap;
+    padding: 10px 0 6px; border-bottom: 1px solid var(--grid); margin-bottom: 6px;
+  }
+  .codes-bar .pills button { padding: 5px 13px; font-size: 12.5px; }
+  .code-pills { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+  .code-pills button {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 999px;
+    padding: 4px 12px; font: inherit; font-size: 12px; color: var(--text-secondary); cursor: pointer;
+  }
+  .code-pills button:hover { background: var(--hover-wash); }
+  .code-pills button[aria-pressed="true"] {
+    border-color: var(--pill-fill); color: var(--text-primary);
+    box-shadow: inset 0 0 0 1px var(--pill-fill);
+  }
+  .code-pills .code-num { font-variant-numeric: tabular-nums; font-weight: 650; margin-inline-end: 5px; }
+
+  /* מקרא אינטראקטיבי — בחירת הסדרות המוצגות (מבט סיכום) */
   .legend { display: flex; gap: 6px 18px; flex-wrap: wrap; justify-content: center; padding: 8px 0 4px; }
   .legend button {
     display: inline-flex; align-items: center; gap: 8px;
@@ -166,6 +186,15 @@
   svg text { font-family: inherit; }
   #chart:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
 
+  /* גרף לכל קוד — רשת של גרפים קטנים בסולם משותף */
+  .facets { display: none; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 6px 14px; padding-bottom: 6px; }
+  .facet-title {
+    direction: rtl; text-align: right;
+    font-size: 12.5px; font-weight: 650; color: var(--text-secondary); margin: 8px 0 0;
+  }
+  .facet-title .facet-sum { font-weight: 400; color: var(--text-muted); unicode-bidi: plaintext; }
+  .facets-empty { direction: rtl; text-align: center; color: var(--text-muted); font-size: 14px; padding: 40px 0; grid-column: 1 / -1; }
+
   .tooltip {
     position: absolute; pointer-events: none; z-index: 10;
     background: var(--surface-1); border: 1px solid var(--border);
@@ -178,11 +207,12 @@
   .tooltip .t-row .t-key { color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px; }
   .tooltip .t-row .t-key i { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
   .tooltip .t-row .t-val { font-weight: 650; font-variant-numeric: tabular-nums; unicode-bidi: plaintext; }
+  .tooltip .t-row.t-total { border-top: 1px solid var(--grid); padding-top: 4px; margin-top: 4px; }
 
   /* ── תצוגת טבלה ── */
-  .table-view { display: none; padding: 8px 0 12px; }
+  .table-view { display: none; padding: 8px 0 12px; overflow-x: auto; }
   .table-view table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .table-view th, .table-view td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--grid); }
+  .table-view th, .table-view td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
   .table-view th { color: var(--text-secondary); font-weight: 600; font-size: 12px; }
   .table-view td.num { font-variant-numeric: tabular-nums; unicode-bidi: plaintext; }
   .table-view td.neg { color: var(--neg-text); }
@@ -207,6 +237,11 @@
   </header>
 
   <div class="filters">
+    <span class="filter-label">מבט:</span>
+    <div class="pills" id="viewSeg" role="group" aria-label="בחירת מבט">
+      <button type="button" data-view="summary" aria-pressed="true">סיכום</button>
+      <button type="button" data-view="codes" aria-pressed="false">לפי קודים</button>
+    </div>
     <span class="filter-label">תקופה:</span>
     <div class="pills" id="rangeSeg" role="group" aria-label="בחירת טווח תקופה">
       <button type="button" data-months="3"  aria-pressed="false">3 חודשים</button>
@@ -214,11 +249,6 @@
       <button type="button" data-months="12" aria-pressed="false">12 חודשים</button>
       <button type="button" data-months="13" aria-pressed="true">13 חודשים</button>
       <button type="button" data-months="24" aria-pressed="false">24 חודשים</button>
-    </div>
-    <span class="filter-label">חתך:</span>
-    <div class="pills" role="group" aria-label="חתך תקופתי">
-      <button type="button" aria-pressed="true">חודשי</button>
-      <button type="button" aria-pressed="false" disabled title="במוקאפ זמין חתך חודשי בלבד">רבעוני</button>
     </div>
     <select class="dim" aria-label="קוד חברה">
       <option>כל קודי החברה</option>
@@ -237,10 +267,26 @@
   <div class="card">
     <div class="card-head">
       <div>
-        <div class="card-title" id="chartTitle">הכנסות, הוצאות ורווח — 13 חודשים אחרונים</div>
+        <div class="card-title" id="chartTitle"></div>
         <div class="card-sub">₪, במטבע החברה</div>
       </div>
       <button class="view-btn" id="viewBtn" type="button">תצוגת טבלה</button>
+    </div>
+
+    <!-- מבט "לפי קודים": מדד (הכנסות או הוצאות), אופן הצגה ובחירת קודי חשבון -->
+    <div class="codes-bar" id="codesBar" style="display:none">
+      <span class="filter-label">מדד:</span>
+      <div class="pills" id="measureSeg" role="group" aria-label="בחירת מדד">
+        <button type="button" data-measure="revenue" aria-pressed="true">הכנסות</button>
+        <button type="button" data-measure="costs" aria-pressed="false">הוצאות</button>
+      </div>
+      <span class="filter-label">הצגה:</span>
+      <div class="pills" id="modeSeg" role="group" aria-label="אופן הצגה">
+        <button type="button" data-mode="sum" aria-pressed="true">גרף מאוחד</button>
+        <button type="button" data-mode="multi" aria-pressed="false">גרף לכל קוד</button>
+      </div>
+      <span class="filter-label">קודים:</span>
+      <div class="code-pills" id="codePills" role="group" aria-label="בחירת קודי חשבון"></div>
     </div>
 
     <!-- לחיצה על סדרה במקרא מציגה/מסתירה אותה; הסולם מתעדכן לפי הסדרות המוצגות -->
@@ -248,7 +294,8 @@
 
     <div class="chart-area" id="chartArea">
       <svg id="chart" width="100%" height="360" tabindex="0" role="application"
-           aria-label="גרף קווי של הכנסות, הוצאות ורווח חודשיים. ניווט עם מקשי החצים לקריאת ערכים."></svg>
+           aria-label="גרף קווי חודשי. ניווט עם מקשי החצים לקריאת ערכים."></svg>
+      <div class="facets" id="facets"></div>
       <div class="tooltip" id="tooltip"></div>
       <div class="sr-only" id="srLive" aria-live="polite" dir="rtl"></div>
     </div>
@@ -258,7 +305,7 @@
 
   <footer class="note">
     מוקאפ להדגמה — הנתונים אקראיים ואינם נתוני אמת. בחיבור לסביבת SAP יוחלף מקור הנתונים
-    בשירות OData / CDS עם אותו מבנה רשומה (תקופה, הכנסות, הוצאות, רווח).
+    בשירות OData / CDS עם אותו מבנה רשומה (תקופה, קוד חשבון, הכנסות, הוצאות, רווח).
   </footer>
 </div>
 
@@ -282,11 +329,48 @@ const SAP_DATA = (() => {
   return rows.map(([period, revenue, costs]) => ({ period, revenue, costs, profit: revenue - costs }));
 })();
 
+/* קודי חשבון בסגנון SAP (RACCT) — פירוק דטרמיניסטי של סכומי החודש לפי קוד */
+const CODES = [
+  { code: "400000", name: "מכירות מוצרים",   type: "revenue", base: .46, amp: .06, f: .9,  ph: 0 },
+  { code: "410000", name: "הכנסות משירותים", type: "revenue", base: .27, amp: .09, f: .7,  ph: 2 },
+  { code: "420000", name: "מנויים ואחזקה",   type: "revenue", base: .18, amp: .05, f: 1.1, ph: 4 },
+  { code: "430000", name: "הכנסות אחרות",    type: "revenue", base: .09, amp: .18, f: 1.3, ph: 1 },
+  { code: "500000", name: "עלות חומרים",     type: "costs",   base: .33, amp: .07, f: .8,  ph: 3 },
+  { code: "510000", name: "שכר עבודה",       type: "costs",   base: .36, amp: .04, f: .6,  ph: 5 },
+  { code: "520000", name: "קבלני משנה",      type: "costs",   base: .12, amp: .15, f: 1.2, ph: 2 },
+  { code: "600000", name: "שכירות ותפעול",   type: "costs",   base: .11, amp: .05, f: .9,  ph: 0 },
+  { code: "610000", name: "שיווק ומכירה",    type: "costs",   base: .08, amp: .12, f: 1.4, ph: 4 },
+];
+const codesOf = type => CODES.filter(c => c.type === type);
+
+(function attachCodeBreakdown() {
+  SAP_DATA.forEach((d, i) => {
+    d.codes = {};
+    for (const type of ["revenue", "costs"]) {
+      const list = codesOf(type);
+      const raws = list.map(c => c.base * (1 + c.amp * Math.sin(c.f * i + c.ph)));
+      const sumRaw = raws.reduce((a, b) => a + b, 0);
+      let acc = 0, maxJ = 0;
+      const vals = raws.map((r, j) => {
+        if (r > raws[maxJ]) maxJ = j;
+        const v = Math.round(d[type] * r / sumRaw);
+        acc += v; return v;
+      });
+      vals[maxJ] += d[type] - acc;   /* הפירוק מסתכם בדיוק לסכום החודשי */
+      list.forEach((c, j) => { d.codes[c.code] = vals[j]; });
+    }
+  });
+})();
+
 const SERIES = [
   { key: "revenue", name: "הכנסות", cssVar: "--c-rev" },
   { key: "costs",   name: "הוצאות", cssVar: "--c-exp" },
   { key: "profit",  name: "רווח",   cssVar: "--c-profit" },
 ];
+const MEASURE_META = {
+  revenue: { name: "הכנסות", cssVar: "--c-rev" },
+  costs:   { name: "הוצאות", cssVar: "--c-exp" },
+};
 
 const MONTH_NAMES = ["ינו׳","פבר׳","מרץ","אפר׳","מאי","יוני","יולי","אוג׳","ספט׳","אוק׳","נוב׳","דצמ׳"];
 const fmt = new Intl.NumberFormat("he-IL");
@@ -306,47 +390,86 @@ function fmtC(vK) {
   return sign + "₪" + Math.round(a) + "K";
 }
 
+/* ── מצב ── */
 let months = 13;
+let view = "summary";        /* 'summary' | 'codes' */
+let measure = "revenue";     /* המדד במבט קודים — הכנסות או הוצאות, לא שניהם */
+let displayMode = "sum";     /* 'sum' — גרף מאוחד | 'multi' — גרף לכל קוד */
 const visible = { revenue: true, costs: true, profit: true };
-let focusIdx = -1;   /* אינדקס לניווט מקלדת בגרף */
+const selectedCodes = {
+  revenue: new Set(codesOf("revenue").map(c => c.code)),
+  costs:   new Set(codesOf("costs").map(c => c.code)),
+};
+let focusIdx = -1;           /* אינדקס לניווט מקלדת בגרף הראשי */
 
 function slice() { return SAP_DATA.slice(-months); }
+function selectedList() { return codesOf(measure).filter(c => selectedCodes[measure].has(c.code)); }
+function selSum(d) { return selectedList().reduce((t, c) => t + d.codes[c.code], 0); }
+
+function chartTitleText() {
+  if (view === "summary") return `הכנסות, הוצאות ורווח — ${months} חודשים אחרונים`;
+  const mode = displayMode === "sum" ? "מאוחד" : "גרף לכל קוד";
+  return `${MEASURE_META[measure].name} לפי קודי חשבון (${mode}) — ${months} חודשים אחרונים`;
+}
 
 /* ── שורת KPI ── */
-function renderKpis(data) {
-  const total = data.reduce((s, d) => s + d.profit, 0);
-  const avg = total / data.length;
-  const best = data.reduce((a, b) => (b.profit > a.profit ? b : a));
-  const half = Math.floor(data.length / 2);
-  const prev = data.slice(0, half).reduce((s, d) => s + d.profit, 0) / half;
-  const curr = data.slice(half).reduce((s, d) => s + d.profit, 0) / (data.length - half);
-  const trendPct = prev !== 0 ? ((curr - prev) / Math.abs(prev)) * 100 : 0;
+function tile(label, value, opts = {}) {
+  const t = document.createElement("div");
+  t.className = "tile";
+  const l = document.createElement("div"); l.className = "label"; l.textContent = label;
+  const v = document.createElement("div"); v.className = "value";
+  if (opts.ltr) {   /* בידוד LTR פנימי בלבד — היישור נשאר כמו בשאר הכרטיסים */
+    const b = document.createElement("bdi"); b.dir = "ltr"; b.textContent = value; v.append(b);
+  } else v.textContent = value;
+  if (opts.color) v.style.color = opts.color;
+  t.append(l, v);
+  if (opts.delta) { const d = document.createElement("div"); d.className = "delta"; d.textContent = opts.delta; t.append(d); }
+  return t;
+}
+function trendTile(values) {
+  const half = Math.floor(values.length / 2);
+  const prev = values.slice(0, half).reduce((a, b) => a + b, 0) / half;
+  const curr = values.slice(half).reduce((a, b) => a + b, 0) / (values.length - half);
+  const pct = prev !== 0 ? ((curr - prev) / Math.abs(prev)) * 100 : 0;
+  return tile("מגמה (מחצית שנייה מול ראשונה)", (pct >= 0 ? "+" : "") + pct.toFixed(1) + "%",
+    { color: pct >= 0 ? "var(--delta-good)" : "var(--neg-text)", ltr: true });
+}
 
+function renderKpis(data) {
   const el = document.getElementById("kpis");
   el.replaceChildren();
-  const tiles = [
-    { label: "סה״כ רווח בתקופה", value: fmtC(total) },
-    { label: "רווח חודשי ממוצע", value: fmtC(avg) },
-    { label: "החודש החזק ביותר", value: monthLabel(best.period), delta: fmtC(best.profit) },
-    { label: "מגמה (מחצית שנייה מול ראשונה)", value: (trendPct >= 0 ? "+" : "") + trendPct.toFixed(1) + "%",
-      color: trendPct >= 0 ? "var(--delta-good)" : "var(--neg-text)", ltr: true },
-  ];
-  for (const t of tiles) {
-    const tile = document.createElement("div");
-    tile.className = "tile";
-    const l = document.createElement("div"); l.className = "label"; l.textContent = t.label;
-    const v = document.createElement("div"); v.className = "value";
-    if (t.ltr) {   /* בידוד LTR פנימי בלבד — היישור נשאר כמו בשאר הכרטיסים */
-      const b = document.createElement("bdi"); b.dir = "ltr"; b.textContent = t.value; v.append(b);
-    } else v.textContent = t.value;
-    if (t.color) v.style.color = t.color;
-    tile.append(l, v);
-    if (t.delta) { const d = document.createElement("div"); d.className = "delta"; d.textContent = t.delta; tile.append(d); }
-    el.append(tile);
+  if (view === "summary") {
+    const total = data.reduce((s, d) => s + d.profit, 0);
+    const best = data.reduce((a, b) => (b.profit > a.profit ? b : a));
+    el.append(
+      tile("סה״כ רווח בתקופה", fmtC(total)),
+      tile("רווח חודשי ממוצע", fmtC(total / data.length)),
+      tile("החודש החזק ביותר", monthLabel(best.period), { delta: fmtC(best.profit) }),
+      trendTile(data.map(d => d.profit)),
+    );
+  } else {
+    const sums = data.map(selSum);
+    const total = sums.reduce((a, b) => a + b, 0);
+    const mName = MEASURE_META[measure].name;
+    const list = selectedList();
+    let topTile;
+    if (list.length) {
+      const top = list.map(c => ({ c, t: data.reduce((s, d) => s + d.codes[c.code], 0) }))
+                      .reduce((a, b) => (b.t > a.t ? b : a));
+      topTile = tile("הקוד המוביל בבחירה", top.c.code, { delta: `${top.c.name} · ${fmtC(top.t)}` });
+    } else {
+      topTile = tile("הקוד המוביל בבחירה", "—", { delta: "לא נבחרו קודים" });
+    }
+    el.append(
+      tile(`סה״כ ${mName} (קודים נבחרים)`, fmtC(total)),
+      tile("ממוצע חודשי לבחירה", fmtC(list.length ? total / data.length : 0)),
+      topTile,
+      trendTile(sums.some(v => v) ? sums : [0, 0]),
+    );
   }
 }
 
-/* ── מקרא: בחירת הסדרות המוצגות ── */
+/* ── מקרא (מבט סיכום): בחירת הסדרות המוצגות ── */
 function renderLegend(data) {
   const el = document.getElementById("legend");
   el.replaceChildren();
@@ -373,15 +496,42 @@ function renderLegend(data) {
   }
 }
 
-/* ── הגרף ── */
+/* ── סרגל קודים: בחירת קודי חשבון למדד הנוכחי ── */
+function renderCodePills() {
+  const el = document.getElementById("codePills");
+  el.replaceChildren();
+  for (const c of codesOf(measure)) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.setAttribute("aria-pressed", String(selectedCodes[measure].has(c.code)));
+    const num = document.createElement("span"); num.className = "code-num"; num.textContent = c.code;
+    btn.append(num, document.createTextNode(c.name));
+    btn.addEventListener("click", () => {
+      const set = selectedCodes[measure];
+      if (set.has(c.code)) set.delete(c.code); else set.add(c.code);
+      btn.setAttribute("aria-pressed", String(set.has(c.code)));
+      refreshCodesView();
+    });
+    el.append(btn);
+  }
+}
+function refreshCodesView() {
+  const data = slice();
+  document.getElementById("chartTitle").textContent = chartTitleText();
+  renderKpis(data);
+  renderChart(data);
+  renderTable(data);
+}
+
+/* ── תשתית גרף קווים ── */
 const PAD = { top: 20, right: 64, bottom: 34, left: 18 };
 const INSET = 12;   /* שוליים פנימיים כדי שהנקודות הקיצוניות לא ייחתכו */
 
-function niceTicks(min, max) {
+function niceTicks(min, max, n = 5) {
   if (min === max) { min -= 1; max += 1; }
-  const span = max - min, rawStep = span / 5;
+  const span = max - min, rawStep = span / n;
   const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
-  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= 6) || 10 * mag;
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= n + 1) || 10 * mag;
   const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step;
   const ticks = [];
   for (let t = lo; t <= hi + 1e-9; t += step) ticks.push(Math.round(t * 100) / 100);
@@ -423,43 +573,28 @@ function svgEl(name, attrs) {
   return el;
 }
 
-let geom = null;   /* גאומטריה עדכנית לטולטיפ ולמקלדת */
-
-function renderChart(data) {
-  const svg = document.getElementById("chart");
-  if (!svg.clientWidth) return;   /* מוסתר (תצוגת טבלה) — ירונדר מחדש במעבר חזרה */
-  const W = svg.clientWidth, H = 360;
+/* מסגרת גרף: רשת מקווקווה, תוויות ציר Y מימין, תוויות חודשים, קו סימון */
+function drawFrame(svg, data, allValues, opts = {}) {
+  const W = svg.clientWidth;
+  if (!W) return null;   /* מוסתר — ירונדר מחדש כשיוצג */
+  const H = opts.height || 360;
+  const pad = opts.pad || PAD;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.replaceChildren();
-  hideTooltip();
 
-  const innerW = W - PAD.left - PAD.right, innerH = H - PAD.top - PAD.bottom;
-  const shown = SERIES.filter(s => visible[s.key]);
-
-  if (!shown.length) {
-    const msg = svgEl("text", { x: W / 2, y: H / 2, "text-anchor": "middle",
-      "font-size": 14, fill: "var(--text-muted)" });
-    msg.textContent = "בחרו לפחות סדרה אחת להצגה במקרא";
-    svg.append(msg);
-    document.getElementById("srLive").textContent = "כל הסדרות מוסתרות. בחרו סדרה במקרא כדי להציג את הגרף.";
-    geom = null;
-    return;
-  }
-
-  const values = data.flatMap(d => shown.map(s => d[s.key]));
-  const ticks = niceTicks(Math.min(0, ...values), Math.max(0, ...values));
+  const innerW = W - pad.left - pad.right, innerH = H - pad.top - pad.bottom;
+  const ticks = opts.ticks || niceTicks(Math.min(0, ...allValues), Math.max(0, ...allValues), opts.tickCount || 5);
   const yMin = ticks[0], yMax = ticks[ticks.length - 1];
-  const yOf = v => PAD.top + innerH * (1 - (v - yMin) / (yMax - yMin));
+  const yOf = v => pad.top + innerH * (1 - (v - yMin) / (yMax - yMin));
   const n = data.length;
-  const xOf = i => PAD.left + INSET + (n === 1 ? (innerW - 2 * INSET) / 2 : (innerW - 2 * INSET) * i / (n - 1));
+  const xOf = i => pad.left + INSET + (n === 1 ? (innerW - 2 * INSET) / 2 : (innerW - 2 * INSET) * i / (n - 1));
 
-  /* קווי רשת מקווקווים + תוויות ציר Y מימין (כמו ברפרנס) */
   for (const t of ticks) {
     const y = yOf(t);
-    svg.append(svgEl("line", { x1: PAD.left, x2: W - PAD.right, y1: y, y2: y,
+    svg.append(svgEl("line", { x1: pad.left, x2: W - pad.right, y1: y, y2: y,
       stroke: t === 0 ? "var(--baseline)" : "var(--grid)", "stroke-width": 1,
       "stroke-dasharray": t === 0 ? "none" : "4 4" }));
-    const label = svgEl("text", { x: W - PAD.right + 8, y: y + 4, "text-anchor": "start",
+    const label = svgEl("text", { x: W - pad.right + 8, y: y + 4, "text-anchor": "start",
       "font-size": 11, fill: "var(--text-muted)" });
     label.textContent = fmtC(t);
     svg.append(label);
@@ -467,32 +602,109 @@ function renderChart(data) {
 
   /* תוויות חודשים — דילוג לפי הרוחב הזמין בפועל, בלי התנגשות עם התווית האחרונה */
   const plotW = innerW - 2 * INSET;
-  const skip = Math.max(1, Math.ceil(n * 52 / Math.max(plotW, 1)));
+  const skip = Math.max(1, Math.ceil(n * (opts.labelMinW || 52) / Math.max(plotW, 1)));
   data.forEach((d, i) => {
     const isLast = i === n - 1;
     if (!isLast && (i % skip !== 0 || n - 1 - i < skip)) return;
-    const m = svgEl("text", { x: xOf(i), y: H - 12, "text-anchor": "middle",
+    const m = svgEl("text", { x: xOf(i), y: H - (opts.monthY || 12), "text-anchor": "middle",
       "font-size": 11, fill: "var(--text-muted)" });
     m.textContent = monthLabel(d.period);
     svg.append(m);
   });
 
-  /* שכבת הסימון (crosshair) — מתחת לקווים */
-  const cross = svgEl("line", { y1: PAD.top, y2: PAD.top + innerH, x1: 0, x2: 0,
+  const cross = svgEl("line", { y1: pad.top, y2: pad.top + innerH, x1: 0, x2: 0,
     stroke: "var(--baseline)", "stroke-width": 1, visibility: "hidden" });
   svg.append(cross);
 
-  /* קווים + נקודות חלולות */
+  return { W, H, pad, innerW, innerH, n, xOf, yOf, cross, ticks };
+}
+
+function drawSeries(svg, f, data, getVal, cssVar, opts = {}) {
+  const pts = data.map((d, i) => [f.xOf(i), f.yOf(getVal(d))]);
+  svg.append(svgEl("path", { d: smoothPath(pts), fill: "none",
+    stroke: `var(${cssVar})`, "stroke-width": opts.strokeW || 2.5,
+    "stroke-linecap": "round", "stroke-linejoin": "round" }));
+  for (const [px, py] of pts) {
+    svg.append(svgEl("circle", { cx: px, cy: py, r: opts.r || 4.5,
+      fill: "var(--surface-1)", stroke: `var(${cssVar})`, "stroke-width": opts.strokeW || 2.5 }));
+  }
+  return pts;
+}
+
+/* אזור פגיעה מלא — הסימון נצמד לחודש הקרוב */
+function attachHover(svg, f, data, onIdx, onLeave) {
+  const hit = svgEl("rect", { x: f.pad.left, y: f.pad.top, width: f.innerW, height: f.innerH, fill: "transparent" });
+  hit.style.cursor = "crosshair";
+  hit.addEventListener("pointermove", e => {
+    const rect = svg.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) * (f.W / rect.width);
+    let best = 0, bd = Infinity;
+    for (let i = 0; i < f.n; i++) { const d = Math.abs(f.xOf(i) - sx); if (d < bd) { bd = d; best = i; } }
+    onIdx(best, e.clientY);
+  });
+  hit.addEventListener("pointerleave", onLeave);
+  svg.append(hit);
+}
+
+/* טולטיפ משותף: rows = [{name, color?, value, total?}] */
+function placeTip(svg, f, i, title, rows, clientY) {
+  const tip = document.getElementById("tooltip");
+  tip.replaceChildren();
+  const t = document.createElement("div"); t.className = "t-month"; t.textContent = title;
+  tip.append(t);
+  for (const r of rows) {
+    const row = document.createElement("div"); row.className = "t-row" + (r.total ? " t-total" : "");
+    const k = document.createElement("span"); k.className = "t-key";
+    if (r.color) { const key = document.createElement("i"); key.style.background = r.color; k.append(key); }
+    k.append(document.createTextNode(r.name));
+    const v = document.createElement("span"); v.className = "t-val"; v.textContent = r.value;
+    row.append(k, v); tip.append(row);
+  }
+  tip.style.display = "block";
+  const area = document.getElementById("chartArea");
+  const aRect = area.getBoundingClientRect();
+  const sRect = svg.getBoundingClientRect();
+  const px = sRect.left - aRect.left + f.xOf(i) * (sRect.width / f.W);
+  const py = clientY == null ? (sRect.top - aRect.top + 40) : clientY - aRect.top;
+  const tw = tip.offsetWidth;
+  let left = px + 14;
+  if (left + tw > area.clientWidth) left = px - tw - 14;
+  tip.style.left = Math.min(Math.max(0, left), Math.max(0, area.clientWidth - tw)) + "px";
+  tip.style.top = Math.max(0, py - 14) + "px";
+}
+function hideTooltip() {
+  document.getElementById("tooltip").style.display = "none";
+  if (geom) geom.f.cross.setAttribute("visibility", "hidden");
+}
+
+/* גאומטריית הגרף הראשי — לטולטיפ ולניווט מקלדת */
+let geom = null;
+
+function emptyChartMsg(svg, text) {
+  const W = svg.clientWidth || 600;
+  svg.setAttribute("viewBox", `0 0 ${W} 360`);
+  svg.replaceChildren();
+  const msg = svgEl("text", { x: W / 2, y: 180, "text-anchor": "middle",
+    "font-size": 14, fill: "var(--text-muted)" });
+  msg.textContent = text;
+  svg.append(msg);
+  document.getElementById("srLive").textContent = text;
+  geom = null;
+}
+
+/* ── מבט סיכום: שלוש סדרות עם מקרא ── */
+function renderSummaryChart(data) {
+  const svg = document.getElementById("chart");
+  if (!svg.clientWidth) return;
+  const shown = SERIES.filter(s => visible[s.key]);
+  if (!shown.length) { emptyChartMsg(svg, "בחרו לפחות סדרה אחת להצגה במקרא"); return; }
+
+  const f = drawFrame(svg, data, data.flatMap(d => shown.map(s => d[s.key])));
+  if (!f) return;
+
   const endLabelPos = { revenue: -12, costs: 20, profit: -12 };  /* הפרדת תוויות קצה */
   for (const s of shown) {
-    const pts = data.map((d, i) => [xOf(i), yOf(d[s.key])]);
-    svg.append(svgEl("path", { d: smoothPath(pts), fill: "none",
-      stroke: `var(${s.cssVar})`, "stroke-width": 2.5,
-      "stroke-linecap": "round", "stroke-linejoin": "round" }));
-    for (const [px, py] of pts) {
-      svg.append(svgEl("circle", { cx: px, cy: py, r: 4.5,
-        fill: "var(--surface-1)", stroke: `var(${s.cssVar})`, "stroke-width": 2.5 }));
-    }
+    const pts = drawSeries(svg, f, data, d => d[s.key], s.cssVar);
     /* תווית קצה ישירה — זיהוי סדרה שאינו תלוי צבע בלבד */
     const last = pts[pts.length - 1];
     const t = svgEl("text", { x: last[0] - 2, y: last[1] + endLabelPos[s.key],
@@ -501,86 +713,132 @@ function renderChart(data) {
     svg.append(t);
   }
 
-  geom = { xOf, n, cross, shown, data };
-
-  /* אזור פגיעה — כל שטח הגרף; ה-crosshair נצמד לחודש הקרוב */
-  const hit = svgEl("rect", { x: PAD.left, y: PAD.top, width: innerW, height: innerH, fill: "transparent" });
-  hit.style.cursor = "crosshair";
-  hit.addEventListener("pointermove", e => {
-    const rect = svg.getBoundingClientRect();
-    const sx = (e.clientX - rect.left) * (W / rect.width);
-    let best = 0, bd = Infinity;
-    for (let i = 0; i < n; i++) { const d = Math.abs(xOf(i) - sx); if (d < bd) { bd = d; best = i; } }
-    focusIdx = best;
-    showAt(best, e.clientY - rect.top);
-  });
-  hit.addEventListener("pointerleave", () => { focusIdx = -1; hideTooltip(); });
-  svg.append(hit);
-}
-
-/* הצגת crosshair + טולטיפ עבור חודש נתון; announce — הקראה לקורא מסך בניווט מקלדת */
-function showAt(i, pointerY, announce) {
-  if (!geom) return;
-  const { xOf, cross, shown, data } = geom;
-  const d = data[i];
-  const x = xOf(i);
-  cross.setAttribute("x1", x); cross.setAttribute("x2", x);
-  cross.setAttribute("visibility", "visible");
-
-  const tip = document.getElementById("tooltip");
-  tip.replaceChildren();
-  const title = document.createElement("div");
-  title.className = "t-month";
-  title.textContent = monthLabel(d.period);
-  tip.append(title);
-  for (const s of shown) {
-    const row = document.createElement("div"); row.className = "t-row";
-    const k = document.createElement("span"); k.className = "t-key";
-    const key = document.createElement("i"); key.style.background = `var(${s.cssVar})`;
-    k.append(key, document.createTextNode(s.name));
-    const v = document.createElement("span"); v.className = "t-val";
-    v.textContent = fmtC(d[s.key]);
-    row.append(k, v); tip.append(row);
-  }
-  const margin = document.createElement("div"); margin.className = "t-row";
-  const mk = document.createElement("span"); mk.className = "t-key"; mk.textContent = "שיעור רווח";
-  const mv = document.createElement("span"); mv.className = "t-val";
-  mv.textContent = ((d.profit / d.revenue) * 100).toFixed(1) + "%";
-  margin.append(mk, mv); tip.append(margin);
-
-  tip.style.display = "block";
-  const area = document.getElementById("chartArea");
-  const svg = document.getElementById("chart");
-  const rect = svg.getBoundingClientRect();
-  const scale = rect.width / (svg.viewBox.baseVal.width || rect.width);
-  const px = x * scale;
-  const tw = tip.offsetWidth;
-  let left = px + 14;
-  if (left + tw > area.clientWidth) left = px - tw - 14;
-  tip.style.left = Math.min(Math.max(0, left), Math.max(0, area.clientWidth - tw)) + "px";
-  tip.style.top = Math.max(0, (pointerY ?? 40) - 14) + "px";
-
-  if (announce) {
-    document.getElementById("srLive").textContent =
-      monthLabel(d.period) + ": " +
+  geom = {
+    svg, f, data,
+    rows: d => [
+      ...shown.map(s => ({ name: s.name, color: `var(${s.cssVar})`, value: fmtC(d[s.key]) })),
+      { name: "שיעור רווח", value: ((d.profit / d.revenue) * 100).toFixed(1) + "%" },
+    ],
+    announce: d => monthLabel(d.period) + ": " +
       shown.map(s => `${s.name} ${fmtC(d[s.key])}`).join(", ") +
-      `, שיעור רווח ${((d.profit / d.revenue) * 100).toFixed(1)}%`;
-  }
-}
-function hideTooltip() {
-  document.getElementById("tooltip").style.display = "none";
-  if (geom) geom.cross.setAttribute("visibility", "hidden");
+      `, שיעור רווח ${((d.profit / d.revenue) * 100).toFixed(1)}%`,
+  };
+  attachHover(svg, f, data, (i, y) => { focusIdx = i; showIdx(i, y, false); },
+    () => { focusIdx = -1; hideTooltip(); });
 }
 
-/* ניווט מקלדת בגרף */
+/* ── מבט קודים, גרף מאוחד: קו אחד הסוכם את הקודים שנבחרו ── */
+function renderSumChart(data) {
+  const svg = document.getElementById("chart");
+  if (!svg.clientWidth) return;
+  const list = selectedList();
+  if (!list.length) { emptyChartMsg(svg, "בחרו לפחות קוד חשבון אחד להצגה"); return; }
+
+  const meta = MEASURE_META[measure];
+  const f = drawFrame(svg, data, data.map(selSum));
+  if (!f) return;
+  drawSeries(svg, f, data, selSum, meta.cssVar);
+
+  geom = {
+    svg, f, data,
+    rows: d => [
+      ...list.map(c => ({ name: `${c.code} · ${c.name}`, color: `var(${meta.cssVar})`, value: fmtC(d.codes[c.code]) })),
+      { name: `סה״כ ${meta.name}`, value: fmtC(selSum(d)), total: true },
+    ],
+    announce: d => `${monthLabel(d.period)}: סה״כ ${meta.name} ${fmtC(selSum(d))} עבור ${list.length} קודים`,
+  };
+  attachHover(svg, f, data, (i, y) => { focusIdx = i; showIdx(i, y, false); },
+    () => { focusIdx = -1; hideTooltip(); });
+}
+
+/* ── מבט קודים, גרף לכל קוד: רשת גרפים קטנים בסולם משותף ── */
+function renderFacets(data) {
+  const wrap = document.getElementById("facets");
+  wrap.replaceChildren();
+  const list = selectedList();
+  if (!list.length) {
+    const msg = document.createElement("div");
+    msg.className = "facets-empty";
+    msg.textContent = "בחרו לפחות קוד חשבון אחד להצגה";
+    wrap.append(msg);
+    document.getElementById("srLive").textContent = msg.textContent;
+    return;
+  }
+  const meta = MEASURE_META[measure];
+  /* סולם אחיד לכל הגרפים — כדי שהשוואה בין קודים תהיה הוגנת */
+  const ticks = niceTicks(0, Math.max(...data.flatMap(d => list.map(c => d.codes[c.code]))), 4);
+
+  /* שלב 1: כל המכלים נכנסים ל-DOM כדי שרוחב העמודות ברשת יתייצב */
+  const holders = list.map(c => {
+    const total = data.reduce((s, d) => s + d.codes[c.code], 0);
+    const title = document.createElement("h4");
+    title.className = "facet-title";
+    title.textContent = `${c.code} · ${c.name} `;
+    const sumSpan = document.createElement("span");
+    sumSpan.className = "facet-sum";
+    sumSpan.textContent = `— ${fmtC(total)}`;
+    title.append(sumSpan);
+
+    const holder = document.createElement("div");
+    const svg = svgEl("svg", { width: "100%", height: 185, role: "img" });
+    svg.setAttribute("aria-label", `${c.code} ${c.name}: ${fmtC(total)} בתקופה`);
+    holder.append(title, svg);
+    wrap.append(holder);
+    return { c, svg };
+  });
+
+  /* שלב 2: רינדור לפי הרוחב הסופי של כל תא */
+  for (const { c, svg } of holders) {
+    const f = drawFrame(svg, data, [], { height: 185, ticks,
+      pad: { top: 12, right: 56, bottom: 24, left: 8 }, labelMinW: 60, monthY: 8 });
+    if (!f) continue;
+    drawSeries(svg, f, data, d => d.codes[c.code], meta.cssVar, { r: 3.5, strokeW: 2 });
+    attachHover(svg, f, data, (i, y) => {
+      f.cross.setAttribute("x1", f.xOf(i)); f.cross.setAttribute("x2", f.xOf(i));
+      f.cross.setAttribute("visibility", "visible");
+      placeTip(svg, f, i, monthLabel(data[i].period),
+        [{ name: `${c.code} · ${c.name}`, color: `var(${meta.cssVar})`, value: fmtC(data[i].codes[c.code]) }], y);
+    }, () => {
+      f.cross.setAttribute("visibility", "hidden");
+      document.getElementById("tooltip").style.display = "none";
+    });
+  }
+}
+
+/* ── שיגור רינדור לפי מבט ── */
+function renderChart(data) {
+  const facets = document.getElementById("facets");
+  const chartSvg = document.getElementById("chart");
+  const multi = view === "codes" && displayMode === "multi";
+  facets.style.display = multi ? "grid" : "none";
+  chartSvg.style.display = multi ? "none" : "block";
+  hideTooltip();
+  geom = null;
+  if (multi) renderFacets(data);
+  else if (view === "summary") renderSummaryChart(data);
+  else renderSumChart(data);
+}
+
+/* הצגת סימון + טולטיפ בגרף הראשי; announce — הקראה לקורא מסך בניווט מקלדת */
+function showIdx(i, clientY, announce) {
+  if (!geom) return;
+  const { svg, f, data } = geom;
+  const d = data[i];
+  f.cross.setAttribute("x1", f.xOf(i)); f.cross.setAttribute("x2", f.xOf(i));
+  f.cross.setAttribute("visibility", "visible");
+  placeTip(svg, f, i, monthLabel(d.period), geom.rows(d), clientY);
+  if (announce) document.getElementById("srLive").textContent = geom.announce(d);
+}
+
+/* ניווט מקלדת בגרף הראשי */
 document.getElementById("chart").addEventListener("keydown", e => {
   if (!geom) return;
-  const { n } = geom;
+  const { f } = geom;
   if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
     e.preventDefault();
     const step = e.key === "ArrowRight" ? 1 : -1;   /* אזור הגרף LTR */
-    focusIdx = focusIdx < 0 ? (step > 0 ? 0 : n - 1) : Math.min(n - 1, Math.max(0, focusIdx + step));
-    showAt(focusIdx, 40, true);
+    focusIdx = focusIdx < 0 ? (step > 0 ? 0 : f.n - 1) : Math.min(f.n - 1, Math.max(0, focusIdx + step));
+    showIdx(focusIdx, null, true);
   } else if (e.key === "Escape") { focusIdx = -1; hideTooltip(); }
 });
 document.getElementById("chart").addEventListener("blur", hideTooltip);
@@ -590,40 +848,73 @@ function renderTable(data) {
   const wrap = document.getElementById("tableView");
   wrap.replaceChildren();
   const table = document.createElement("table");
+  table.setAttribute("aria-labelledby", "chartTitle");
   const thead = document.createElement("thead");
   const hr = document.createElement("tr");
-  for (const h of ["חודש", "הכנסות (אלפי ₪)", "הוצאות (אלפי ₪)", "רווח (אלפי ₪)", "שיעור רווח"]) {
-    const th = document.createElement("th"); th.textContent = h; hr.append(th);
-  }
-  table.setAttribute("aria-labelledby", "chartTitle");
-  thead.append(hr); table.append(thead);
   const tbody = document.createElement("tbody");
-  for (const d of [...data].reverse()) {
-    const tr = document.createElement("tr");
-    const cells = [
-      [monthLabel(d.period), ""],
-      [fmt.format(d.revenue), "num"],
-      [fmt.format(d.costs), "num"],
-      [fmt.format(d.profit), "num" + (d.profit < 0 ? " neg" : "")],
-      [((d.profit / d.revenue) * 100).toFixed(1) + "%", "num" + (d.profit < 0 ? " neg" : "")],
-    ];
-    for (const [txt, cls] of cells) {
-      const td = document.createElement("td"); if (cls) td.className = cls; td.textContent = txt; tr.append(td);
+
+  if (view === "summary") {
+    for (const h of ["חודש", "הכנסות (אלפי ₪)", "הוצאות (אלפי ₪)", "רווח (אלפי ₪)", "שיעור רווח"]) {
+      const th = document.createElement("th"); th.textContent = h; hr.append(th);
     }
-    tbody.append(tr);
+    for (const d of [...data].reverse()) {
+      const tr = document.createElement("tr");
+      const cells = [
+        [monthLabel(d.period), ""],
+        [fmt.format(d.revenue), "num"],
+        [fmt.format(d.costs), "num"],
+        [fmt.format(d.profit), "num" + (d.profit < 0 ? " neg" : "")],
+        [((d.profit / d.revenue) * 100).toFixed(1) + "%", "num" + (d.profit < 0 ? " neg" : "")],
+      ];
+      for (const [txt, cls] of cells) {
+        const td = document.createElement("td"); if (cls) td.className = cls; td.textContent = txt; tr.append(td);
+      }
+      tbody.append(tr);
+    }
+  } else {
+    const list = selectedList();
+    const heads = ["חודש", ...list.map(c => `${c.code} ${c.name}`), `סה״כ ${MEASURE_META[measure].name} (אלפי ₪)`];
+    for (const h of heads) { const th = document.createElement("th"); th.textContent = h; hr.append(th); }
+    for (const d of [...data].reverse()) {
+      const tr = document.createElement("tr");
+      const td0 = document.createElement("td"); td0.textContent = monthLabel(d.period); tr.append(td0);
+      for (const c of list) {
+        const td = document.createElement("td"); td.className = "num";
+        td.textContent = fmt.format(d.codes[c.code]); tr.append(td);
+      }
+      const tds = document.createElement("td"); tds.className = "num";
+      tds.style.fontWeight = "650";
+      tds.textContent = fmt.format(selSum(d)); tr.append(tds);
+      tbody.append(tr);
+    }
   }
-  table.append(tbody); wrap.append(table);
+  thead.append(hr); table.append(thead, tbody); wrap.append(table);
 }
 
 /* ── חיווט ── */
+function syncPanels() {
+  const tableActive = document.getElementById("tableView").style.display === "block";
+  document.getElementById("legend").style.display = (!tableActive && view === "summary") ? "flex" : "none";
+  document.getElementById("codesBar").style.display = view === "codes" ? "flex" : "none";
+}
+
 function renderAll() {
   const data = slice();
-  document.getElementById("chartTitle").textContent = `הכנסות, הוצאות ורווח — ${months} חודשים אחרונים`;
+  document.getElementById("chartTitle").textContent = chartTitleText();
+  syncPanels();
   renderKpis(data);
   renderLegend(data);
   renderChart(data);
   renderTable(data);
 }
+
+document.getElementById("viewSeg").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-view]");
+  if (!btn || btn.dataset.view === view) return;
+  view = btn.dataset.view;
+  for (const b of e.currentTarget.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b === btn));
+  renderAll();
+});
 
 document.getElementById("rangeSeg").addEventListener("click", e => {
   const btn = e.target.closest("button[data-months]");
@@ -633,15 +924,31 @@ document.getElementById("rangeSeg").addEventListener("click", e => {
   renderAll();
 });
 
+document.getElementById("measureSeg").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-measure]");
+  if (!btn || btn.dataset.measure === measure) return;
+  measure = btn.dataset.measure;   /* הכנסות או הוצאות — לא שניהם יחד */
+  for (const b of e.currentTarget.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b === btn));
+  renderCodePills();
+  refreshCodesView();
+});
+
+document.getElementById("modeSeg").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-mode]");
+  if (!btn || btn.dataset.mode === displayMode) return;
+  displayMode = btn.dataset.mode;
+  for (const b of e.currentTarget.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b === btn));
+  refreshCodesView();
+});
+
 document.getElementById("viewBtn").addEventListener("click", () => {
   const tableView = document.getElementById("tableView");
   const chartArea = document.getElementById("chartArea");
-  const legend = document.getElementById("legend");
   const showTable = tableView.style.display !== "block";
   tableView.style.display = showTable ? "block" : "none";
   chartArea.style.display = showTable ? "none" : "block";
-  legend.style.display = showTable ? "none" : "flex";
   document.getElementById("viewBtn").textContent = showTable ? "תצוגת גרף" : "תצוגת טבלה";
+  syncPanels();
   if (!showTable) renderChart(slice());   /* רינדור מחדש ברוחב האמיתי אחרי החזרה מהטבלה */
 });
 
@@ -660,6 +967,7 @@ document.getElementById("themeBtn").addEventListener("click", () => {
 syncThemeBtn();
 
 addEventListener("resize", () => renderChart(slice()));
+renderCodePills();
 renderAll();
 </script>
 </body>
