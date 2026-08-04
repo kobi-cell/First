@@ -33,6 +33,8 @@
     --pill-fill: #1c5cab;      /* מילוי גלולה נבחרת — לבן עליו עומד ב-AA */
     --accent-ink: #ffffff;
     --hover-wash: rgba(11,11,11,0.05);
+    /* פלטה קטגוריאלית לקווים לפי קוד — סדר קבוע */
+    --cat-1: #2a78d6; --cat-2: #eb6834; --cat-3: #1baf7a; --cat-4: #eda100; --cat-5: #e87ba4;
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
@@ -53,6 +55,7 @@
     --pill-fill: #1c5cab;
     --accent-ink: #ffffff;
     --hover-wash: rgba(255,255,255,0.07);
+    --cat-1: #3987e5; --cat-2: #d95926; --cat-3: #199e70; --cat-4: #c98500; --cat-5: #d55181;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -74,6 +77,7 @@
       --pill-fill: #1c5cab;
       --accent-ink: #ffffff;
       --hover-wash: rgba(255,255,255,0.07);
+      --cat-1: #3987e5; --cat-2: #d95926; --cat-3: #199e70; --cat-4: #c98500; --cat-5: #d55181;
     }
   }
 
@@ -154,6 +158,7 @@
   .codes-bar .pills button { padding: 5px 13px; font-size: 12.5px; }
   .code-pills { display: inline-flex; gap: 6px; flex-wrap: wrap; }
   .code-pills button {
+    display: inline-flex; align-items: center;
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 999px;
     padding: 4px 12px; font: inherit; font-size: 12px; color: var(--text-secondary); cursor: pointer;
   }
@@ -163,6 +168,10 @@
     box-shadow: inset 0 0 0 1px var(--pill-fill);
   }
   .code-pills .code-num { font-variant-numeric: tabular-nums; font-weight: 650; margin-inline-end: 5px; }
+  /* במצב "קווים בגרף אחד" הגלולות משמשות גם כמקרא — נקודת צבע לכל קוד */
+  .code-pills .code-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; margin-inline-end: 6px; display: none; }
+  .codes-bar[data-mode="lines"] .code-dot { display: inline-block; }
+  .code-pills button[aria-pressed="false"] .code-dot { opacity: .35; }
 
   /* מקרא אינטראקטיבי — בחירת הסדרות המוצגות (מבט סיכום) */
   .legend { display: flex; gap: 6px 18px; flex-wrap: wrap; justify-content: center; padding: 8px 0 4px; }
@@ -283,6 +292,7 @@
       <span class="filter-label">הצגה:</span>
       <div class="pills" id="modeSeg" role="group" aria-label="אופן הצגה">
         <button type="button" data-mode="sum" aria-pressed="true">גרף מאוחד</button>
+        <button type="button" data-mode="lines" aria-pressed="false">קווים בגרף אחד</button>
         <button type="button" data-mode="multi" aria-pressed="false">גרף לכל קוד</button>
       </div>
       <span class="filter-label">קודים:</span>
@@ -394,7 +404,10 @@ function fmtC(vK) {
 let months = 13;
 let view = "summary";        /* 'summary' | 'codes' */
 let measure = "revenue";     /* המדד במבט קודים — הכנסות או הוצאות, לא שניהם */
-let displayMode = "sum";     /* 'sum' — גרף מאוחד | 'multi' — גרף לכל קוד */
+let displayMode = "sum";     /* 'sum' מאוחד | 'lines' קווים בגרף אחד | 'multi' גרף לכל קוד */
+const MODE_NAMES = { sum: "מאוחד", lines: "קווים בגרף אחד", multi: "גרף לכל קוד" };
+/* צבע קבוע לכל קוד לפי מיקומו בקטלוג — הצבע לא משתנה כשמבטלים קודים אחרים */
+const codeColor = c => `--cat-${codesOf(c.type).indexOf(c) + 1}`;
 const visible = { revenue: true, costs: true, profit: true };
 const selectedCodes = {
   revenue: new Set(codesOf("revenue").map(c => c.code)),
@@ -408,8 +421,7 @@ function selSum(d) { return selectedList().reduce((t, c) => t + d.codes[c.code],
 
 function chartTitleText() {
   if (view === "summary") return `הכנסות, הוצאות ורווח — ${months} חודשים אחרונים`;
-  const mode = displayMode === "sum" ? "מאוחד" : "גרף לכל קוד";
-  return `${MEASURE_META[measure].name} לפי קודי חשבון (${mode}) — ${months} חודשים אחרונים`;
+  return `${MEASURE_META[measure].name} לפי קודי חשבון (${MODE_NAMES[displayMode]}) — ${months} חודשים אחרונים`;
 }
 
 /* ── שורת KPI ── */
@@ -504,8 +516,11 @@ function renderCodePills() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.setAttribute("aria-pressed", String(selectedCodes[measure].has(c.code)));
+    const dot = document.createElement("span");
+    dot.className = "code-dot";
+    dot.style.background = `var(${codeColor(c)})`;
     const num = document.createElement("span"); num.className = "code-num"; num.textContent = c.code;
-    btn.append(num, document.createTextNode(c.name));
+    btn.append(dot, num, document.createTextNode(c.name));
     btn.addEventListener("click", () => {
       const set = selectedCodes[measure];
       if (set.has(c.code)) set.delete(c.code); else set.add(c.code);
@@ -751,6 +766,48 @@ function renderSumChart(data) {
     () => { focusIdx = -1; hideTooltip(); });
 }
 
+/* ── מבט קודים, קווים בגרף אחד: קו לכל קוד נבחר, צבע קבוע לכל קוד ── */
+function renderLinesChart(data) {
+  const svg = document.getElementById("chart");
+  if (!svg.clientWidth) return;
+  const list = selectedList();
+  if (!list.length) { emptyChartMsg(svg, "בחרו לפחות קוד חשבון אחד להצגה"); return; }
+
+  const meta = MEASURE_META[measure];
+  const f = drawFrame(svg, data, data.flatMap(d => list.map(c => d.codes[c.code])));
+  if (!f) return;
+
+  const ends = [];
+  for (const c of list) {
+    const pts = drawSeries(svg, f, data, d => d.codes[c.code], codeColor(c), { r: 4, strokeW: 2.25 });
+    const last = pts[pts.length - 1];
+    ends.push({ c, x: last[0], y: last[1] });
+  }
+  /* תוויות קצה — מספר הקוד, עם הפרדה אנכית מינימלית כשקווים מסתיימים קרוב */
+  ends.sort((a, b) => a.y - b.y);
+  let prevY = -Infinity;
+  for (const e of ends) {
+    let y = Math.max(e.y + 3.5, prevY + 13);
+    y = Math.min(y, f.pad.top + f.innerH - 2);
+    prevY = y;
+    const t = svgEl("text", { x: e.x - 8, y, "text-anchor": "end",
+      "font-size": 10.5, "font-weight": 650, fill: "var(--text-secondary)" });
+    t.textContent = e.c.code;
+    svg.append(t);
+  }
+
+  geom = {
+    svg, f, data,
+    rows: d => [
+      ...list.map(c => ({ name: `${c.code} · ${c.name}`, color: `var(${codeColor(c)})`, value: fmtC(d.codes[c.code]) })),
+      { name: `סה״כ ${meta.name}`, value: fmtC(selSum(d)), total: true },
+    ],
+    announce: d => `${monthLabel(d.period)}: סה״כ ${meta.name} ${fmtC(selSum(d))} עבור ${list.length} קודים`,
+  };
+  attachHover(svg, f, data, (i, y) => { focusIdx = i; showIdx(i, y, false); },
+    () => { focusIdx = -1; hideTooltip(); });
+}
+
 /* ── מבט קודים, גרף לכל קוד: רשת גרפים קטנים בסולם משותף ── */
 function renderFacets(data) {
   const wrap = document.getElementById("facets");
@@ -812,10 +869,12 @@ function renderChart(data) {
   const multi = view === "codes" && displayMode === "multi";
   facets.style.display = multi ? "grid" : "none";
   chartSvg.style.display = multi ? "none" : "block";
+  document.getElementById("codesBar").dataset.mode = displayMode;
   hideTooltip();
   geom = null;
   if (multi) renderFacets(data);
   else if (view === "summary") renderSummaryChart(data);
+  else if (displayMode === "lines") renderLinesChart(data);
   else renderSumChart(data);
 }
 
