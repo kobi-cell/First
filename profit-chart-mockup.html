@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>רווח לפי תקופה — מוקאפ</title>
+<!--
+  מוקאפ: גרף רווח לפי תקופה, חתך חודשי, ברירת מחדל 13 חודשים אחרונים.
+  הנתונים כאן הם נתוני דמו בלבד, במבנה המדמה תוצאת שאילתה מ-SAP:
+  אגרגציה חודשית של ACDOCA (יומן אוניברסלי) — הכנסות מול עלויות לפי FISCYEARPER,
+  או צריכה מ-CDS view / OData ייעודי. בחיבור אמיתי מחליפים את המערך SAP_DATA
+  בקריאת fetch לשירות.
+-->
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1: #fcfcfb;      /* משטח הגרף */
+    --page: #f9f9f7;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --profit: #2a78d6;         /* קוטב חיובי — כחול */
+    --loss: #e34948;           /* קוטב שלילי — אדום */
+    --delta-good: #006300;
+    --hover-wash: rgba(11,11,11,0.05);
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255,255,255,0.10);
+    --profit: #3987e5;
+    --loss: #e66767;
+    --delta-good: #0ca30c;
+    --hover-wash: rgba(255,255,255,0.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --profit: #3987e5;
+      --loss: #e66767;
+      --delta-good: #0ca30c;
+      --hover-wash: rgba(255,255,255,0.07);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 24px;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+
+  header.page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+  h1 { font-size: 22px; font-weight: 650; margin: 0 0 4px; }
+  .subtitle { font-size: 13px; color: var(--text-secondary); margin: 0; }
+  .source-badge {
+    display: inline-block; margin-inline-start: 8px; padding: 1px 8px;
+    border: 1px solid var(--border); border-radius: 999px;
+    font-size: 11px; color: var(--text-muted); vertical-align: 1px;
+  }
+  .theme-btn {
+    background: var(--surface-1); color: var(--text-secondary);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer;
+  }
+  .theme-btn:hover { background: var(--hover-wash); }
+
+  /* ── שורת פילטרים ── */
+  .filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .filter-label { font-size: 13px; color: var(--text-secondary); }
+  .seg {
+    display: inline-flex; background: var(--surface-1);
+    border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  }
+  .seg button {
+    background: none; border: none; padding: 7px 14px;
+    font: inherit; font-size: 13px; color: var(--text-secondary); cursor: pointer;
+  }
+  .seg button:hover { background: var(--hover-wash); }
+  .seg button[aria-pressed="true"] { background: var(--hover-wash); color: var(--text-primary); font-weight: 650; }
+  .seg button + button { border-inline-start: 1px solid var(--border); }
+  select.dim {
+    background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 10px; font: inherit; font-size: 13px;
+  }
+
+  /* ── שורת KPI ── */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .tile {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .tile .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+  .tile .value { font-size: 24px; font-weight: 600; }
+  .tile .delta { font-size: 12px; margin-top: 4px; color: var(--text-muted); }
+  .tile .delta.up { color: var(--delta-good); }
+  .tile .delta.down { color: var(--loss); }
+
+  /* ── כרטיס הגרף ── */
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 18px 10px;
+  }
+  .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .card-title { font-size: 15px; font-weight: 650; }
+  .card-sub { font-size: 12px; color: var(--text-muted); }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); align-items: center; }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .view-btn {
+    background: none; border: 1px solid var(--border); border-radius: 8px;
+    padding: 5px 12px; font: inherit; font-size: 12px; color: var(--text-secondary); cursor: pointer;
+  }
+  .view-btn:hover { background: var(--hover-wash); }
+
+  .chart-area { direction: ltr; position: relative; }  /* ציר זמן משמאל לימין */
+  svg text { font-family: inherit; }
+  .bar { cursor: pointer; transition: opacity .1s; }
+  .bar:hover, .bar:focus { opacity: .82; outline: none; }
+  .bar:focus-visible { stroke: var(--text-primary); stroke-width: 1.5; }
+
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 10;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; direction: rtl;
+    box-shadow: 0 4px 14px rgba(0,0,0,.12);
+    font-size: 12px; min-width: 150px; display: none;
+  }
+  .tooltip .t-month { font-weight: 650; margin-bottom: 6px; }
+  .tooltip .t-row { display: flex; justify-content: space-between; gap: 14px; margin: 2px 0; }
+  .tooltip .t-row .t-key { color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px; }
+  .tooltip .t-row .t-key i { width: 10px; height: 3px; border-radius: 2px; display: inline-block; }
+  .tooltip .t-row .t-val { font-weight: 650; font-variant-numeric: tabular-nums; unicode-bidi: plaintext; }
+
+  /* ── תצוגת טבלה ── */
+  .table-view { display: none; padding: 8px 0 12px; }
+  .table-view table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .table-view th, .table-view td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--grid); }
+  .table-view th { color: var(--text-secondary); font-weight: 600; font-size: 12px; }
+  .table-view td.num { font-variant-numeric: tabular-nums; unicode-bidi: plaintext; }
+  .table-view td.neg { color: var(--loss); }
+
+  footer.note { margin-top: 14px; font-size: 12px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="page-head">
+    <div>
+      <h1>רווח לפי תקופה <span class="source-badge">מקור: SAP · נתוני דמו</span></h1>
+      <p class="subtitle">רווח גולמי חודשי (הכנסות בניכוי עלויות), אגרגציה מהיומן האוניברסלי (ACDOCA)</p>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button">מצב כהה</button>
+  </header>
+
+  <div class="filters">
+    <span class="filter-label">תקופה:</span>
+    <div class="seg" id="rangeSeg" role="group" aria-label="בחירת טווח תקופה">
+      <button type="button" data-months="6"  aria-pressed="false">6 חודשים</button>
+      <button type="button" data-months="12" aria-pressed="false">12 חודשים</button>
+      <button type="button" data-months="13" aria-pressed="true">13 חודשים</button>
+      <button type="button" data-months="24" aria-pressed="false">24 חודשים</button>
+    </div>
+    <span class="filter-label">חתך:</span>
+    <div class="seg" aria-label="חתך תקופתי">
+      <button type="button" aria-pressed="true">חודשי</button>
+      <button type="button" aria-pressed="false" disabled title="במוקאפ זמין חתך חודשי בלבד">רבעוני</button>
+    </div>
+    <select class="dim" aria-label="קוד חברה">
+      <option>כל קודי החברה</option>
+      <option>1000 — ישראל</option>
+      <option>2000 — אירופה</option>
+    </select>
+    <select class="dim" aria-label="מרכז רווח">
+      <option>כל מרכזי הרווח</option>
+      <option>PC-100 מכירות</option>
+      <option>PC-200 שירות</option>
+    </select>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title" id="chartTitle">רווח חודשי — 13 חודשים אחרונים</div>
+        <div class="card-sub">אלפי ₪</div>
+      </div>
+      <div style="display:flex; gap:14px; align-items:center;">
+        <div class="legend" aria-hidden="true">
+          <span class="key"><span class="swatch" style="background:var(--profit)"></span>רווח</span>
+          <span class="key"><span class="swatch" style="background:var(--loss)"></span>הפסד</span>
+        </div>
+        <button class="view-btn" id="viewBtn" type="button">תצוגת טבלה</button>
+      </div>
+    </div>
+
+    <div class="chart-area" id="chartArea">
+      <svg id="chart" width="100%" height="340" role="img" aria-label="גרף עמודות של רווח חודשי"></svg>
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+
+    <div class="table-view" id="tableView"></div>
+  </div>
+
+  <footer class="note">
+    מוקאפ להדגמה — הנתונים אקראיים ואינם נתוני אמת. בחיבור לסביבת SAP יוחלף מקור הנתונים
+    בשירות OData / CDS עם אותו מבנה רשומה (תקופה, הכנסות, עלויות, רווח).
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* ── נתוני דמו במבנה תוצאת SAP: 24 חודשים אחורה מהחודש הנוכחי (אוגוסט 2026) ──
+   revenue / costs באלפי ₪. profit מחושב. */
+const SAP_DATA = (() => {
+  const rows = [
+    /* 2024 */ ["2024-08", 2980, 2570], ["2024-09", 3120, 2660], ["2024-10", 3350, 2810],
+               ["2024-11", 3410, 2890], ["2024-12", 3720, 3040],
+    /* 2025 */ ["2025-01", 2890, 2620], ["2025-02", 2760, 2540], ["2025-03", 3180, 2750],
+               ["2025-04", 3260, 2830], ["2025-05", 3390, 2870], ["2025-06", 3470, 2960],
+               ["2025-07", 3510, 3020], ["2025-08", 3340, 2980], ["2025-09", 3620, 3090],
+               ["2025-10", 3780, 3180], ["2025-11", 3850, 3260], ["2025-12", 4120, 3390],
+    /* 2026 */ ["2026-01", 3150, 2940], ["2026-02", 2980, 3105], ["2026-03", 3540, 3080],
+               ["2026-04", 3680, 3150], ["2026-05", 3890, 3240], ["2026-06", 4050, 3330],
+               ["2026-07", 4210, 3410],
+  ];
+  return rows.map(([period, revenue, costs]) => ({ period, revenue, costs, profit: revenue - costs }));
+})();
+
+const MONTH_NAMES = ["ינו׳","פבר׳","מרץ","אפר׳","מאי","יוני","יולי","אוג׳","ספט׳","אוק׳","נוב׳","דצמ׳"];
+const fmt = new Intl.NumberFormat("he-IL");
+const monthLabel = p => {
+  const [y, m] = p.split("-");
+  return MONTH_NAMES[+m - 1] + " " + y.slice(2);
+};
+const fmtK = v => fmt.format(Math.round(v)); // הערכים כבר באלפי ₪
+
+let months = 13;
+
+function slice() { return SAP_DATA.slice(-months); }
+
+/* ── שורת KPI ── */
+function renderKpis(data) {
+  const total = data.reduce((s, d) => s + d.profit, 0);
+  const avg = total / data.length;
+  const best = data.reduce((a, b) => (b.profit > a.profit ? b : a));
+  const half = Math.floor(data.length / 2);
+  const prev = data.slice(0, half).reduce((s, d) => s + d.profit, 0) / half;
+  const curr = data.slice(half).reduce((s, d) => s + d.profit, 0) / (data.length - half);
+  const trendPct = prev !== 0 ? ((curr - prev) / Math.abs(prev)) * 100 : 0;
+
+  const el = document.getElementById("kpis");
+  el.replaceChildren();
+  const tiles = [
+    { label: "סה״כ רווח בתקופה", value: fmtK(total) + " אלפי ₪" },
+    { label: "רווח חודשי ממוצע", value: fmtK(avg) + " אלפי ₪" },
+    { label: "החודש החזק ביותר", value: monthLabel(best.period), delta: fmtK(best.profit) + " אלפי ₪", cls: "" },
+    { label: "מגמה (מחצית שנייה מול ראשונה)", value: (trendPct >= 0 ? "+" : "") + trendPct.toFixed(1) + "%", cls: trendPct >= 0 ? "up" : "down", ltr: true },
+  ];
+  for (const t of tiles) {
+    const tile = document.createElement("div");
+    tile.className = "tile";
+    const l = document.createElement("div"); l.className = "label"; l.textContent = t.label;
+    const v = document.createElement("div"); v.className = "value"; v.textContent = t.value;
+    if (t.ltr) v.dir = "ltr";
+    tile.append(l, v);
+    if (t.delta) { const d = document.createElement("div"); d.className = "delta"; d.textContent = t.delta; tile.append(d); }
+    if (t.cls) { v.style.color = t.cls === "up" ? "var(--delta-good)" : "var(--loss)"; }
+    el.append(tile);
+  }
+}
+
+/* ── הגרף ── */
+const PAD = { top: 24, right: 16, bottom: 34, left: 52 };
+
+function niceTicks(min, max) {
+  const span = max - min, rawStep = span / 5;
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= 6) || 10 * mag;
+  const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step;
+  const ticks = [];
+  for (let t = lo; t <= hi + 1e-9; t += step) ticks.push(Math.round(t * 100) / 100);
+  return ticks;
+}
+
+function barPath(x, y, w, h, r, positive) {
+  /* קצה נתונים מעוגל 4px, ישר בקו הבסיס */
+  r = Math.min(r, w / 2, h);
+  if (positive) {
+    return `M${x},${y + h} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h} Z`;
+  }
+  return `M${x},${y} V${y + h - r} Q${x},${y + h} ${x + r},${y + h} H${x + w - r} Q${x + w},${y + h} ${x + w},${y + h - r} V${y} Z`;
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+function svgEl(name, attrs) {
+  const el = document.createElementNS(SVG_NS, name);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+
+function renderChart(data) {
+  const svg = document.getElementById("chart");
+  const W = svg.clientWidth || 980, H = 340;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.replaceChildren();
+
+  const innerW = W - PAD.left - PAD.right, innerH = H - PAD.top - PAD.bottom;
+  const values = data.map(d => d.profit);
+  const ticks = niceTicks(Math.min(0, ...values), Math.max(0, ...values));
+  const yMin = ticks[0], yMax = ticks[ticks.length - 1];
+  const yOf = v => PAD.top + innerH * (1 - (v - yMin) / (yMax - yMin));
+
+  // קווי רשת + תוויות ציר Y
+  for (const t of ticks) {
+    const y = yOf(t);
+    svg.append(svgEl("line", { x1: PAD.left, x2: W - PAD.right, y1: y, y2: y,
+      stroke: t === 0 ? "var(--baseline)" : "var(--grid)", "stroke-width": 1 }));
+    const label = svgEl("text", { x: PAD.left - 8, y: y + 4, "text-anchor": "end",
+      "font-size": 11, fill: "var(--text-muted)" });
+    label.textContent = fmt.format(t);
+    svg.append(label);
+  }
+
+  const band = innerW / data.length;
+  const barW = Math.min(24, band * 0.55);
+  const maxIdx = values.indexOf(Math.max(...values));
+  const minVal = Math.min(...values);
+  const y0 = yOf(0);
+
+  data.forEach((d, i) => {
+    const x = PAD.left + band * i + (band - barW) / 2;
+    const positive = d.profit >= 0;
+    const yTop = positive ? yOf(d.profit) : y0;
+    const h = Math.max(Math.abs(yOf(d.profit) - y0), 1);
+
+    // אזור פגיעה רחב מהעמודה עצמה
+    const hit = svgEl("rect", { x: PAD.left + band * i, y: PAD.top, width: band, height: innerH, fill: "transparent" });
+    svg.append(hit);
+
+    const bar = svgEl("path", {
+      d: barPath(x, yTop, barW, h, 4, positive),
+      fill: positive ? "var(--profit)" : "var(--loss)",
+      class: "bar", tabindex: 0, role: "img",
+    });
+    bar.setAttribute("aria-label",
+      `${monthLabel(d.period)}: ${positive ? "רווח" : "הפסד"} ${fmtK(Math.abs(d.profit))} אלפי שקלים`);
+    svg.append(bar);
+
+    // תוויות ישירות סלקטיביות: השיא, החודש האחרון, וחודש הפסדי
+    const labelIt = i === maxIdx || i === data.length - 1 || (d.profit < 0 && d.profit === minVal);
+    if (labelIt) {
+      const ly = positive ? yTop - 7 : y0 + h + 14;
+      const t = svgEl("text", { x: x + barW / 2, y: ly, "text-anchor": "middle",
+        "font-size": 11, "font-weight": 650, fill: "var(--text-secondary)" });
+      t.textContent = fmt.format(d.profit);
+      svg.append(t);
+    }
+
+    // תווית חודש — בדילוג כשהצפיפות עולה
+    const skip = data.length > 14 ? 2 : 1;
+    if (i % skip === 0 || i === data.length - 1) {
+      const m = svgEl("text", { x: PAD.left + band * i + band / 2, y: H - 12,
+        "text-anchor": "middle", "font-size": 11, fill: "var(--text-muted)" });
+      m.textContent = monthLabel(d.period);
+      svg.append(m);
+    }
+
+    const show = evt => showTooltip(d, evt, bar);
+    for (const el of [hit, bar]) {
+      el.addEventListener("pointermove", show);
+      el.addEventListener("pointerleave", hideTooltip);
+    }
+    bar.addEventListener("focus", () => showTooltip(d, null, bar));
+    bar.addEventListener("blur", hideTooltip);
+  });
+}
+
+/* ── טולטיפ ── */
+function showTooltip(d, evt, bar) {
+  const tip = document.getElementById("tooltip");
+  tip.replaceChildren();
+  const title = document.createElement("div");
+  title.className = "t-month";
+  title.textContent = monthLabel(d.period);
+  tip.append(title);
+  const rows = [
+    ["הכנסות", d.revenue, "var(--text-muted)"],
+    ["עלויות", d.costs, "var(--text-muted)"],
+    [d.profit >= 0 ? "רווח" : "הפסד", Math.abs(d.profit), d.profit >= 0 ? "var(--profit)" : "var(--loss)"],
+  ];
+  for (const [key, val, color] of rows) {
+    const row = document.createElement("div"); row.className = "t-row";
+    const k = document.createElement("span"); k.className = "t-key";
+    const swatch = document.createElement("i"); swatch.style.background = color;
+    k.append(swatch, document.createTextNode(key));
+    const v = document.createElement("span"); v.className = "t-val";
+    v.textContent = fmtK(val) + " אלפי ₪";
+    row.append(k, v); tip.append(row);
+  }
+  const margin = document.createElement("div");
+  margin.className = "t-row";
+  const mk = document.createElement("span"); mk.className = "t-key"; mk.textContent = "שיעור רווח";
+  const mv = document.createElement("span"); mv.className = "t-val";
+  mv.textContent = ((d.profit / d.revenue) * 100).toFixed(1) + "%";
+  margin.append(mk, mv); tip.append(margin);
+
+  tip.style.display = "block";
+  const area = document.getElementById("chartArea");
+  const areaRect = area.getBoundingClientRect();
+  let px, py;
+  if (evt) { px = evt.clientX - areaRect.left; py = evt.clientY - areaRect.top; }
+  else { const b = bar.getBoundingClientRect(); px = b.left + b.width / 2 - areaRect.left; py = b.top - areaRect.top; }
+  const tw = tip.offsetWidth;
+  let left = px + 14;
+  if (left + tw > areaRect.width) left = px - tw - 14;
+  tip.style.left = Math.max(0, left) + "px";
+  tip.style.top = Math.max(0, py - 20) + "px";
+}
+function hideTooltip() { document.getElementById("tooltip").style.display = "none"; }
+
+/* ── תצוגת טבלה ── */
+function renderTable(data) {
+  const wrap = document.getElementById("tableView");
+  wrap.replaceChildren();
+  const table = document.createElement("table");
+  const thead = document.createElement("thead");
+  const hr = document.createElement("tr");
+  for (const h of ["חודש", "הכנסות (אלפי ₪)", "עלויות (אלפי ₪)", "רווח (אלפי ₪)", "שיעור רווח"]) {
+    const th = document.createElement("th"); th.textContent = h; hr.append(th);
+  }
+  thead.append(hr); table.append(thead);
+  const tbody = document.createElement("tbody");
+  for (const d of [...data].reverse()) {
+    const tr = document.createElement("tr");
+    const cells = [
+      [monthLabel(d.period), ""],
+      [fmtK(d.revenue), "num"],
+      [fmtK(d.costs), "num"],
+      [fmt.format(d.profit), "num" + (d.profit < 0 ? " neg" : "")],
+      [((d.profit / d.revenue) * 100).toFixed(1) + "%", "num" + (d.profit < 0 ? " neg" : "")],
+    ];
+    for (const [txt, cls] of cells) {
+      const td = document.createElement("td"); if (cls) td.className = cls; td.textContent = txt; tr.append(td);
+    }
+    tbody.append(tr);
+  }
+  table.append(tbody); wrap.append(table);
+}
+
+/* ── חיווט ── */
+function renderAll() {
+  const data = slice();
+  document.getElementById("chartTitle").textContent = `רווח חודשי — ${months} חודשים אחרונים`;
+  renderKpis(data);
+  renderChart(data);
+  renderTable(data);
+}
+
+document.getElementById("rangeSeg").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-months]");
+  if (!btn) return;
+  months = +btn.dataset.months;
+  for (const b of e.currentTarget.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b === btn));
+  renderAll();
+});
+
+document.getElementById("viewBtn").addEventListener("click", () => {
+  const tableView = document.getElementById("tableView");
+  const chartArea = document.getElementById("chartArea");
+  const showTable = tableView.style.display !== "block";
+  tableView.style.display = showTable ? "block" : "none";
+  chartArea.style.display = showTable ? "none" : "block";
+  document.getElementById("viewBtn").textContent = showTable ? "תצוגת גרף" : "תצוגת טבלה";
+});
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  const root = document.documentElement;
+  const dark = root.getAttribute("data-theme") === "dark" ||
+    (!root.getAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
+  root.setAttribute("data-theme", dark ? "light" : "dark");
+  document.getElementById("themeBtn").textContent = dark ? "מצב כהה" : "מצב בהיר";
+});
+
+addEventListener("resize", () => renderChart(slice()));
+renderAll();
+</script>
+</body>
+</html>
