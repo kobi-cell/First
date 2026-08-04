@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>רווח לפי תקופה — מוקאפ</title>
 <!--
-  מוקאפ: גרף רווח לפי תקופה, חתך חודשי, ברירת מחדל 13 חודשים אחרונים.
+  מוקאפ: הכנסות / הוצאות / רווח לפי תקופה, חתך חודשי, ברירת מחדל 13 חודשים אחרונים.
   הנתונים כאן הם נתוני דמו בלבד, במבנה המדמה תוצאת שאילתה מ-SAP:
   אגרגציה חודשית של ACDOCA (יומן אוניברסלי) — הכנסות מול עלויות לפי FISCYEARPER,
   או צריכה מ-CDS view / OData ייעודי. בחיבור אמיתי מחליפים את המערך SAP_DATA
@@ -18,13 +18,18 @@
     --page: #f9f9f7;
     --text-primary: #0b0b0b;
     --text-secondary: #52514e;
-    --text-muted: #898781;
+    --text-muted: #6e6c66;
     --grid: #e1e0d9;
     --baseline: #c3c2b7;
     --border: rgba(11,11,11,0.10);
-    --profit: #2a78d6;         /* קוטב חיובי — כחול */
-    --loss: #e34948;           /* קוטב שלילי — אדום */
+    --c-rev: #2a78d6;          /* הכנסות — כחול */
+    --c-exp: #e34948;          /* הוצאות — אדום */
+    --c-profit: #008300;       /* רווח — ירוק */
+    --neg-text: #c22a29;       /* אדום כהה יותר לטקסט — עומד ב-AA */
     --delta-good: #006300;
+    --accent: #2a78d6;
+    --pill-fill: #1c5cab;      /* מילוי גלולה נבחרת — לבן עליו עומד ב-AA */
+    --accent-ink: #ffffff;
     --hover-wash: rgba(11,11,11,0.05);
   }
   :root[data-theme="dark"] {
@@ -37,9 +42,14 @@
     --grid: #2c2c2a;
     --baseline: #383835;
     --border: rgba(255,255,255,0.10);
-    --profit: #3987e5;
-    --loss: #e66767;
+    --c-rev: #3987e5;
+    --c-exp: #e66767;
+    --c-profit: #008300;
+    --neg-text: #e66767;
     --delta-good: #0ca30c;
+    --accent: #3987e5;
+    --pill-fill: #1c5cab;
+    --accent-ink: #ffffff;
     --hover-wash: rgba(255,255,255,0.07);
   }
   @media (prefers-color-scheme: dark) {
@@ -53,9 +63,14 @@
       --grid: #2c2c2a;
       --baseline: #383835;
       --border: rgba(255,255,255,0.10);
-      --profit: #3987e5;
-      --loss: #e66767;
+      --c-rev: #3987e5;
+      --c-exp: #e66767;
+      --c-profit: #008300;
+      --neg-text: #e66767;
       --delta-good: #0ca30c;
+      --accent: #3987e5;
+      --pill-fill: #1c5cab;
+      --accent-ink: #ffffff;
       --hover-wash: rgba(255,255,255,0.07);
     }
   }
@@ -85,23 +100,23 @@
   }
   .theme-btn:hover { background: var(--hover-wash); }
 
-  /* ── שורת פילטרים ── */
-  .filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-  .filter-label { font-size: 13px; color: var(--text-secondary); }
-  .seg {
-    display: inline-flex; background: var(--surface-1);
-    border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  /* ── שורת פילטרים — גלולות בסגנון הרפרנס ── */
+  .filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .filter-label { font-size: 13px; color: var(--text-secondary); margin-inline-end: 2px; }
+  .pills { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+  .pills button {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 9px;
+    padding: 7px 16px; font: inherit; font-size: 13px; color: var(--text-secondary); cursor: pointer;
   }
-  .seg button {
-    background: none; border: none; padding: 7px 14px;
-    font: inherit; font-size: 13px; color: var(--text-secondary); cursor: pointer;
+  .pills button:hover { background: var(--hover-wash); }
+  .pills button[aria-pressed="true"] {
+    background: var(--pill-fill); border-color: var(--pill-fill);
+    color: var(--accent-ink); font-weight: 650;
   }
-  .seg button:hover { background: var(--hover-wash); }
-  .seg button[aria-pressed="true"] { background: var(--hover-wash); color: var(--text-primary); font-weight: 650; }
-  .seg button + button { border-inline-start: 1px solid var(--border); }
+  .pills button:disabled { opacity: .5; cursor: default; }
   select.dim {
     background: var(--surface-1); color: var(--text-primary);
-    border: 1px solid var(--border); border-radius: 8px;
+    border: 1px solid var(--border); border-radius: 9px;
     padding: 7px 10px; font: inherit; font-size: 13px;
   }
 
@@ -114,43 +129,54 @@
   .tile .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
   .tile .value { font-size: 24px; font-weight: 600; }
   .tile .delta { font-size: 12px; margin-top: 4px; color: var(--text-muted); }
-  .tile .delta.up { color: var(--delta-good); }
-  .tile .delta.down { color: var(--loss); }
 
   /* ── כרטיס הגרף ── */
   .card {
     background: var(--surface-1); border: 1px solid var(--border);
     border-radius: 12px; padding: 18px 18px 10px;
   }
-  .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 2px; flex-wrap: wrap; }
   .card-title { font-size: 15px; font-weight: 650; }
   .card-sub { font-size: 12px; color: var(--text-muted); }
-  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); align-items: center; }
-  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
-  .legend .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
   .view-btn {
     background: none; border: 1px solid var(--border); border-radius: 8px;
     padding: 5px 12px; font: inherit; font-size: 12px; color: var(--text-secondary); cursor: pointer;
   }
   .view-btn:hover { background: var(--hover-wash); }
 
-  .chart-area { direction: ltr; position: relative; }  /* ציר זמן משמאל לימין */
+  /* מקרא אינטראקטיבי — בחירת הסדרות המוצגות */
+  .legend { display: flex; gap: 6px 18px; flex-wrap: wrap; justify-content: center; padding: 8px 0 4px; }
+  .legend button {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: none; border: none; padding: 4px 6px; border-radius: 8px;
+    font: inherit; font-size: 14px; color: var(--text-primary); cursor: pointer;
+  }
+  .legend button:hover { background: var(--hover-wash); }
+  .legend .dot {
+    width: 13px; height: 13px; border-radius: 50%; flex: none;
+    background: var(--dot-c); border: 2.5px solid var(--dot-c);
+  }
+  .legend .sum { color: var(--text-secondary); font-variant-numeric: tabular-nums; unicode-bidi: plaintext; }
+  /* מצב מכובה: העמעום על הנקודה בלבד — הטקסט נשאר קריא ולחיץ */
+  .legend button[aria-pressed="false"] .dot { background: var(--surface-1); opacity: .55; }
+  .legend button[aria-pressed="false"] .name { text-decoration: line-through; color: var(--text-secondary); }
+
+  .chart-area { direction: ltr; position: relative; }  /* ציר הזמן משמאל לימין */
+  svg { display: block; }
   svg text { font-family: inherit; }
-  .bar { cursor: pointer; transition: opacity .1s; }
-  .bar:hover, .bar:focus { opacity: .82; outline: none; }
-  .bar:focus-visible { stroke: var(--text-primary); stroke-width: 1.5; }
+  #chart:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
 
   .tooltip {
     position: absolute; pointer-events: none; z-index: 10;
     background: var(--surface-1); border: 1px solid var(--border);
     border-radius: 8px; padding: 8px 12px; direction: rtl;
     box-shadow: 0 4px 14px rgba(0,0,0,.12);
-    font-size: 12px; min-width: 150px; display: none;
+    font-size: 12px; min-width: 160px; display: none;
   }
   .tooltip .t-month { font-weight: 650; margin-bottom: 6px; }
   .tooltip .t-row { display: flex; justify-content: space-between; gap: 14px; margin: 2px 0; }
   .tooltip .t-row .t-key { color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px; }
-  .tooltip .t-row .t-key i { width: 10px; height: 3px; border-radius: 2px; display: inline-block; }
+  .tooltip .t-row .t-key i { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
   .tooltip .t-row .t-val { font-weight: 650; font-variant-numeric: tabular-nums; unicode-bidi: plaintext; }
 
   /* ── תצוגת טבלה ── */
@@ -159,7 +185,12 @@
   .table-view th, .table-view td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--grid); }
   .table-view th { color: var(--text-secondary); font-weight: 600; font-size: 12px; }
   .table-view td.num { font-variant-numeric: tabular-nums; unicode-bidi: plaintext; }
-  .table-view td.neg { color: var(--loss); }
+  .table-view td.neg { color: var(--neg-text); }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
 
   footer.note { margin-top: 14px; font-size: 12px; color: var(--text-muted); }
 </style>
@@ -170,21 +201,22 @@
   <header class="page-head">
     <div>
       <h1>רווח לפי תקופה <span class="source-badge">מקור: SAP · נתוני דמו</span></h1>
-      <p class="subtitle">רווח גולמי חודשי (הכנסות בניכוי עלויות), אגרגציה מהיומן האוניברסלי (ACDOCA)</p>
+      <p class="subtitle">הכנסות, הוצאות ורווח בחתך חודשי, אגרגציה מהיומן האוניברסלי (ACDOCA)</p>
     </div>
     <button class="theme-btn" id="themeBtn" type="button">מצב כהה</button>
   </header>
 
   <div class="filters">
     <span class="filter-label">תקופה:</span>
-    <div class="seg" id="rangeSeg" role="group" aria-label="בחירת טווח תקופה">
+    <div class="pills" id="rangeSeg" role="group" aria-label="בחירת טווח תקופה">
+      <button type="button" data-months="3"  aria-pressed="false">3 חודשים</button>
       <button type="button" data-months="6"  aria-pressed="false">6 חודשים</button>
       <button type="button" data-months="12" aria-pressed="false">12 חודשים</button>
       <button type="button" data-months="13" aria-pressed="true">13 חודשים</button>
       <button type="button" data-months="24" aria-pressed="false">24 חודשים</button>
     </div>
     <span class="filter-label">חתך:</span>
-    <div class="seg" aria-label="חתך תקופתי">
+    <div class="pills" role="group" aria-label="חתך תקופתי">
       <button type="button" aria-pressed="true">חודשי</button>
       <button type="button" aria-pressed="false" disabled title="במוקאפ זמין חתך חודשי בלבד">רבעוני</button>
     </div>
@@ -205,21 +237,20 @@
   <div class="card">
     <div class="card-head">
       <div>
-        <div class="card-title" id="chartTitle">רווח חודשי — 13 חודשים אחרונים</div>
-        <div class="card-sub">אלפי ₪</div>
+        <div class="card-title" id="chartTitle">הכנסות, הוצאות ורווח — 13 חודשים אחרונים</div>
+        <div class="card-sub">₪, במטבע החברה</div>
       </div>
-      <div style="display:flex; gap:14px; align-items:center;">
-        <div class="legend" aria-hidden="true">
-          <span class="key"><span class="swatch" style="background:var(--profit)"></span>רווח</span>
-          <span class="key"><span class="swatch" style="background:var(--loss)"></span>הפסד</span>
-        </div>
-        <button class="view-btn" id="viewBtn" type="button">תצוגת טבלה</button>
-      </div>
+      <button class="view-btn" id="viewBtn" type="button">תצוגת טבלה</button>
     </div>
 
+    <!-- לחיצה על סדרה במקרא מציגה/מסתירה אותה; הסולם מתעדכן לפי הסדרות המוצגות -->
+    <div class="legend" id="legend" role="group" aria-label="בחירת סדרות להצגה"></div>
+
     <div class="chart-area" id="chartArea">
-      <svg id="chart" width="100%" height="340" role="img" aria-label="גרף עמודות של רווח חודשי"></svg>
+      <svg id="chart" width="100%" height="360" tabindex="0" role="application"
+           aria-label="גרף קווי של הכנסות, הוצאות ורווח חודשיים. ניווט עם מקשי החצים לקריאת ערכים."></svg>
       <div class="tooltip" id="tooltip"></div>
+      <div class="sr-only" id="srLive" aria-live="polite" dir="rtl"></div>
     </div>
 
     <div class="table-view" id="tableView"></div>
@@ -227,7 +258,7 @@
 
   <footer class="note">
     מוקאפ להדגמה — הנתונים אקראיים ואינם נתוני אמת. בחיבור לסביבת SAP יוחלף מקור הנתונים
-    בשירות OData / CDS עם אותו מבנה רשומה (תקופה, הכנסות, עלויות, רווח).
+    בשירות OData / CDS עם אותו מבנה רשומה (תקופה, הכנסות, הוצאות, רווח).
   </footer>
 </div>
 
@@ -251,15 +282,33 @@ const SAP_DATA = (() => {
   return rows.map(([period, revenue, costs]) => ({ period, revenue, costs, profit: revenue - costs }));
 })();
 
+const SERIES = [
+  { key: "revenue", name: "הכנסות", cssVar: "--c-rev" },
+  { key: "costs",   name: "הוצאות", cssVar: "--c-exp" },
+  { key: "profit",  name: "רווח",   cssVar: "--c-profit" },
+];
+
 const MONTH_NAMES = ["ינו׳","פבר׳","מרץ","אפר׳","מאי","יוני","יולי","אוג׳","ספט׳","אוק׳","נוב׳","דצמ׳"];
 const fmt = new Intl.NumberFormat("he-IL");
 const monthLabel = p => {
   const [y, m] = p.split("-");
   return MONTH_NAMES[+m - 1] + " " + y.slice(2);
 };
-const fmtK = v => fmt.format(Math.round(v)); // הערכים כבר באלפי ₪
+/* הערכים באלפי ₪ → תצוגה קומפקטית: ₪860K / ₪4.2M */
+function fmtC(vK) {
+  const sign = vK < 0 ? "-" : "";
+  const a = Math.abs(vK);
+  if (a >= 1000) {
+    const m = a / 1000;
+    return sign + "₪" + (m >= 10 ? Math.round(m) : (Math.round(m * 10) / 10)) + "M";
+  }
+  if (a === 0) return "0";
+  return sign + "₪" + Math.round(a) + "K";
+}
 
 let months = 13;
+const visible = { revenue: true, costs: true, profit: true };
+let focusIdx = -1;   /* אינדקס לניווט מקלדת בגרף */
 
 function slice() { return SAP_DATA.slice(-months); }
 
@@ -276,28 +325,60 @@ function renderKpis(data) {
   const el = document.getElementById("kpis");
   el.replaceChildren();
   const tiles = [
-    { label: "סה״כ רווח בתקופה", value: fmtK(total) + " אלפי ₪" },
-    { label: "רווח חודשי ממוצע", value: fmtK(avg) + " אלפי ₪" },
-    { label: "החודש החזק ביותר", value: monthLabel(best.period), delta: fmtK(best.profit) + " אלפי ₪", cls: "" },
-    { label: "מגמה (מחצית שנייה מול ראשונה)", value: (trendPct >= 0 ? "+" : "") + trendPct.toFixed(1) + "%", cls: trendPct >= 0 ? "up" : "down", ltr: true },
+    { label: "סה״כ רווח בתקופה", value: fmtC(total) },
+    { label: "רווח חודשי ממוצע", value: fmtC(avg) },
+    { label: "החודש החזק ביותר", value: monthLabel(best.period), delta: fmtC(best.profit) },
+    { label: "מגמה (מחצית שנייה מול ראשונה)", value: (trendPct >= 0 ? "+" : "") + trendPct.toFixed(1) + "%",
+      color: trendPct >= 0 ? "var(--delta-good)" : "var(--neg-text)", ltr: true },
   ];
   for (const t of tiles) {
     const tile = document.createElement("div");
     tile.className = "tile";
     const l = document.createElement("div"); l.className = "label"; l.textContent = t.label;
-    const v = document.createElement("div"); v.className = "value"; v.textContent = t.value;
-    if (t.ltr) v.dir = "ltr";
+    const v = document.createElement("div"); v.className = "value";
+    if (t.ltr) {   /* בידוד LTR פנימי בלבד — היישור נשאר כמו בשאר הכרטיסים */
+      const b = document.createElement("bdi"); b.dir = "ltr"; b.textContent = t.value; v.append(b);
+    } else v.textContent = t.value;
+    if (t.color) v.style.color = t.color;
     tile.append(l, v);
     if (t.delta) { const d = document.createElement("div"); d.className = "delta"; d.textContent = t.delta; tile.append(d); }
-    if (t.cls) { v.style.color = t.cls === "up" ? "var(--delta-good)" : "var(--loss)"; }
     el.append(tile);
   }
 }
 
+/* ── מקרא: בחירת הסדרות המוצגות ── */
+function renderLegend(data) {
+  const el = document.getElementById("legend");
+  el.replaceChildren();
+  for (const s of SERIES) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.setAttribute("aria-pressed", String(visible[s.key]));
+    btn.title = visible[s.key] ? "הסתרת הסדרה" : "הצגת הסדרה";
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    dot.style.setProperty("--dot-c", `var(${s.cssVar})`);
+    const name = document.createElement("span"); name.className = "name"; name.textContent = s.name;
+    const sum = document.createElement("span"); sum.className = "sum";
+    sum.textContent = fmtC(data.reduce((t, d) => t + d[s.key], 0));
+    btn.append(dot, name, sum);
+    /* עדכון במקום, בלי בנייה מחדש — הפוקוס נשאר על הכפתור ו-aria-pressed מוכרז */
+    btn.addEventListener("click", () => {
+      visible[s.key] = !visible[s.key];
+      btn.setAttribute("aria-pressed", String(visible[s.key]));
+      btn.title = visible[s.key] ? "הסתרת הסדרה" : "הצגת הסדרה";
+      renderChart(slice());
+    });
+    el.append(btn);
+  }
+}
+
 /* ── הגרף ── */
-const PAD = { top: 24, right: 16, bottom: 34, left: 52 };
+const PAD = { top: 20, right: 64, bottom: 34, left: 18 };
+const INSET = 12;   /* שוליים פנימיים כדי שהנקודות הקיצוניות לא ייחתכו */
 
 function niceTicks(min, max) {
+  if (min === max) { min -= 1; max += 1; }
   const span = max - min, rawStep = span / 5;
   const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
   const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= 6) || 10 * mag;
@@ -307,13 +388,32 @@ function niceTicks(min, max) {
   return ticks;
 }
 
-function barPath(x, y, w, h, r, positive) {
-  /* קצה נתונים מעוגל 4px, ישר בקו הבסיס */
-  r = Math.min(r, w / 2, h);
-  if (positive) {
-    return `M${x},${y + h} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h} Z`;
+/* עקומה חלקה מונוטונית (Fritsch–Carlson) — חלקה כמו ברפרנס, בלי שיאים מדומים */
+function smoothPath(pts) {
+  const n = pts.length;
+  if (n === 0) return "";
+  if (n === 1) return `M${pts[0][0]},${pts[0][1]}`;
+  const dx = [], dy = [], m = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx.push(pts[i + 1][0] - pts[i][0]);
+    dy.push(pts[i + 1][1] - pts[i][1]);
+    m.push(dy[i] / dx[i]);
   }
-  return `M${x},${y} V${y + h - r} Q${x},${y + h} ${x + r},${y + h} H${x + w - r} Q${x + w},${y + h} ${x + w},${y + h - r} V${y} Z`;
+  const t = [m[0]];
+  for (let i = 1; i < n - 1; i++) {
+    if (m[i - 1] * m[i] <= 0) t.push(0);
+    else {
+      const w1 = 2 * dx[i] + dx[i - 1], w2 = dx[i] + 2 * dx[i - 1];
+      t.push((w1 + w2) / (w1 / m[i - 1] + w2 / m[i]));
+    }
+  }
+  t.push(m[n - 2]);
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    d += `C${pts[i][0] + h},${pts[i][1] + t[i] * h} ${pts[i + 1][0] - h},${pts[i + 1][1] - t[i + 1] * h} ${pts[i + 1][0]},${pts[i + 1][1]}`;
+  }
+  return d;
 }
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -323,107 +423,126 @@ function svgEl(name, attrs) {
   return el;
 }
 
+let geom = null;   /* גאומטריה עדכנית לטולטיפ ולמקלדת */
+
 function renderChart(data) {
   const svg = document.getElementById("chart");
-  const W = svg.clientWidth || 980, H = 340;
+  if (!svg.clientWidth) return;   /* מוסתר (תצוגת טבלה) — ירונדר מחדש במעבר חזרה */
+  const W = svg.clientWidth, H = 360;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.replaceChildren();
+  hideTooltip();
 
   const innerW = W - PAD.left - PAD.right, innerH = H - PAD.top - PAD.bottom;
-  const values = data.map(d => d.profit);
+  const shown = SERIES.filter(s => visible[s.key]);
+
+  if (!shown.length) {
+    const msg = svgEl("text", { x: W / 2, y: H / 2, "text-anchor": "middle",
+      "font-size": 14, fill: "var(--text-muted)" });
+    msg.textContent = "בחרו לפחות סדרה אחת להצגה במקרא";
+    svg.append(msg);
+    document.getElementById("srLive").textContent = "כל הסדרות מוסתרות. בחרו סדרה במקרא כדי להציג את הגרף.";
+    geom = null;
+    return;
+  }
+
+  const values = data.flatMap(d => shown.map(s => d[s.key]));
   const ticks = niceTicks(Math.min(0, ...values), Math.max(0, ...values));
   const yMin = ticks[0], yMax = ticks[ticks.length - 1];
   const yOf = v => PAD.top + innerH * (1 - (v - yMin) / (yMax - yMin));
+  const n = data.length;
+  const xOf = i => PAD.left + INSET + (n === 1 ? (innerW - 2 * INSET) / 2 : (innerW - 2 * INSET) * i / (n - 1));
 
-  // קווי רשת + תוויות ציר Y
+  /* קווי רשת מקווקווים + תוויות ציר Y מימין (כמו ברפרנס) */
   for (const t of ticks) {
     const y = yOf(t);
     svg.append(svgEl("line", { x1: PAD.left, x2: W - PAD.right, y1: y, y2: y,
-      stroke: t === 0 ? "var(--baseline)" : "var(--grid)", "stroke-width": 1 }));
-    const label = svgEl("text", { x: PAD.left - 8, y: y + 4, "text-anchor": "end",
+      stroke: t === 0 ? "var(--baseline)" : "var(--grid)", "stroke-width": 1,
+      "stroke-dasharray": t === 0 ? "none" : "4 4" }));
+    const label = svgEl("text", { x: W - PAD.right + 8, y: y + 4, "text-anchor": "start",
       "font-size": 11, fill: "var(--text-muted)" });
-    label.textContent = fmt.format(t);
+    label.textContent = fmtC(t);
     svg.append(label);
   }
 
-  const band = innerW / data.length;
-  const barW = Math.min(24, band * 0.55);
-  const maxIdx = values.indexOf(Math.max(...values));
-  const minVal = Math.min(...values);
-  const y0 = yOf(0);
-
+  /* תוויות חודשים — דילוג לפי הרוחב הזמין בפועל, בלי התנגשות עם התווית האחרונה */
+  const plotW = innerW - 2 * INSET;
+  const skip = Math.max(1, Math.ceil(n * 52 / Math.max(plotW, 1)));
   data.forEach((d, i) => {
-    const x = PAD.left + band * i + (band - barW) / 2;
-    const positive = d.profit >= 0;
-    const yTop = positive ? yOf(d.profit) : y0;
-    const h = Math.max(Math.abs(yOf(d.profit) - y0), 1);
-
-    // אזור פגיעה רחב מהעמודה עצמה
-    const hit = svgEl("rect", { x: PAD.left + band * i, y: PAD.top, width: band, height: innerH, fill: "transparent" });
-    svg.append(hit);
-
-    const bar = svgEl("path", {
-      d: barPath(x, yTop, barW, h, 4, positive),
-      fill: positive ? "var(--profit)" : "var(--loss)",
-      class: "bar", tabindex: 0, role: "img",
-    });
-    bar.setAttribute("aria-label",
-      `${monthLabel(d.period)}: ${positive ? "רווח" : "הפסד"} ${fmtK(Math.abs(d.profit))} אלפי שקלים`);
-    svg.append(bar);
-
-    // תוויות ישירות סלקטיביות: השיא, החודש האחרון, וחודש הפסדי
-    const labelIt = i === maxIdx || i === data.length - 1 || (d.profit < 0 && d.profit === minVal);
-    if (labelIt) {
-      const ly = positive ? yTop - 7 : y0 + h + 14;
-      const t = svgEl("text", { x: x + barW / 2, y: ly, "text-anchor": "middle",
-        "font-size": 11, "font-weight": 650, fill: "var(--text-secondary)" });
-      t.textContent = fmt.format(d.profit);
-      svg.append(t);
-    }
-
-    // תווית חודש — בדילוג כשהצפיפות עולה
-    const skip = data.length > 14 ? 2 : 1;
-    if (i % skip === 0 || i === data.length - 1) {
-      const m = svgEl("text", { x: PAD.left + band * i + band / 2, y: H - 12,
-        "text-anchor": "middle", "font-size": 11, fill: "var(--text-muted)" });
-      m.textContent = monthLabel(d.period);
-      svg.append(m);
-    }
-
-    const show = evt => showTooltip(d, evt, bar);
-    for (const el of [hit, bar]) {
-      el.addEventListener("pointermove", show);
-      el.addEventListener("pointerleave", hideTooltip);
-    }
-    bar.addEventListener("focus", () => showTooltip(d, null, bar));
-    bar.addEventListener("blur", hideTooltip);
+    const isLast = i === n - 1;
+    if (!isLast && (i % skip !== 0 || n - 1 - i < skip)) return;
+    const m = svgEl("text", { x: xOf(i), y: H - 12, "text-anchor": "middle",
+      "font-size": 11, fill: "var(--text-muted)" });
+    m.textContent = monthLabel(d.period);
+    svg.append(m);
   });
+
+  /* שכבת הסימון (crosshair) — מתחת לקווים */
+  const cross = svgEl("line", { y1: PAD.top, y2: PAD.top + innerH, x1: 0, x2: 0,
+    stroke: "var(--baseline)", "stroke-width": 1, visibility: "hidden" });
+  svg.append(cross);
+
+  /* קווים + נקודות חלולות */
+  const endLabelPos = { revenue: -12, costs: 20, profit: -12 };  /* הפרדת תוויות קצה */
+  for (const s of shown) {
+    const pts = data.map((d, i) => [xOf(i), yOf(d[s.key])]);
+    svg.append(svgEl("path", { d: smoothPath(pts), fill: "none",
+      stroke: `var(${s.cssVar})`, "stroke-width": 2.5,
+      "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    for (const [px, py] of pts) {
+      svg.append(svgEl("circle", { cx: px, cy: py, r: 4.5,
+        fill: "var(--surface-1)", stroke: `var(${s.cssVar})`, "stroke-width": 2.5 }));
+    }
+    /* תווית קצה ישירה — זיהוי סדרה שאינו תלוי צבע בלבד */
+    const last = pts[pts.length - 1];
+    const t = svgEl("text", { x: last[0] - 2, y: last[1] + endLabelPos[s.key],
+      "text-anchor": "end", "font-size": 11.5, "font-weight": 650, fill: "var(--text-secondary)" });
+    t.textContent = s.name;
+    svg.append(t);
+  }
+
+  geom = { xOf, n, cross, shown, data };
+
+  /* אזור פגיעה — כל שטח הגרף; ה-crosshair נצמד לחודש הקרוב */
+  const hit = svgEl("rect", { x: PAD.left, y: PAD.top, width: innerW, height: innerH, fill: "transparent" });
+  hit.style.cursor = "crosshair";
+  hit.addEventListener("pointermove", e => {
+    const rect = svg.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) * (W / rect.width);
+    let best = 0, bd = Infinity;
+    for (let i = 0; i < n; i++) { const d = Math.abs(xOf(i) - sx); if (d < bd) { bd = d; best = i; } }
+    focusIdx = best;
+    showAt(best, e.clientY - rect.top);
+  });
+  hit.addEventListener("pointerleave", () => { focusIdx = -1; hideTooltip(); });
+  svg.append(hit);
 }
 
-/* ── טולטיפ ── */
-function showTooltip(d, evt, bar) {
+/* הצגת crosshair + טולטיפ עבור חודש נתון; announce — הקראה לקורא מסך בניווט מקלדת */
+function showAt(i, pointerY, announce) {
+  if (!geom) return;
+  const { xOf, cross, shown, data } = geom;
+  const d = data[i];
+  const x = xOf(i);
+  cross.setAttribute("x1", x); cross.setAttribute("x2", x);
+  cross.setAttribute("visibility", "visible");
+
   const tip = document.getElementById("tooltip");
   tip.replaceChildren();
   const title = document.createElement("div");
   title.className = "t-month";
   title.textContent = monthLabel(d.period);
   tip.append(title);
-  const rows = [
-    ["הכנסות", d.revenue, "var(--text-muted)"],
-    ["עלויות", d.costs, "var(--text-muted)"],
-    [d.profit >= 0 ? "רווח" : "הפסד", Math.abs(d.profit), d.profit >= 0 ? "var(--profit)" : "var(--loss)"],
-  ];
-  for (const [key, val, color] of rows) {
+  for (const s of shown) {
     const row = document.createElement("div"); row.className = "t-row";
     const k = document.createElement("span"); k.className = "t-key";
-    const swatch = document.createElement("i"); swatch.style.background = color;
-    k.append(swatch, document.createTextNode(key));
+    const key = document.createElement("i"); key.style.background = `var(${s.cssVar})`;
+    k.append(key, document.createTextNode(s.name));
     const v = document.createElement("span"); v.className = "t-val";
-    v.textContent = fmtK(val) + " אלפי ₪";
+    v.textContent = fmtC(d[s.key]);
     row.append(k, v); tip.append(row);
   }
-  const margin = document.createElement("div");
-  margin.className = "t-row";
+  const margin = document.createElement("div"); margin.className = "t-row";
   const mk = document.createElement("span"); mk.className = "t-key"; mk.textContent = "שיעור רווח";
   const mv = document.createElement("span"); mv.className = "t-val";
   mv.textContent = ((d.profit / d.revenue) * 100).toFixed(1) + "%";
@@ -431,17 +550,40 @@ function showTooltip(d, evt, bar) {
 
   tip.style.display = "block";
   const area = document.getElementById("chartArea");
-  const areaRect = area.getBoundingClientRect();
-  let px, py;
-  if (evt) { px = evt.clientX - areaRect.left; py = evt.clientY - areaRect.top; }
-  else { const b = bar.getBoundingClientRect(); px = b.left + b.width / 2 - areaRect.left; py = b.top - areaRect.top; }
+  const svg = document.getElementById("chart");
+  const rect = svg.getBoundingClientRect();
+  const scale = rect.width / (svg.viewBox.baseVal.width || rect.width);
+  const px = x * scale;
   const tw = tip.offsetWidth;
   let left = px + 14;
-  if (left + tw > areaRect.width) left = px - tw - 14;
-  tip.style.left = Math.max(0, left) + "px";
-  tip.style.top = Math.max(0, py - 20) + "px";
+  if (left + tw > area.clientWidth) left = px - tw - 14;
+  tip.style.left = Math.min(Math.max(0, left), Math.max(0, area.clientWidth - tw)) + "px";
+  tip.style.top = Math.max(0, (pointerY ?? 40) - 14) + "px";
+
+  if (announce) {
+    document.getElementById("srLive").textContent =
+      monthLabel(d.period) + ": " +
+      shown.map(s => `${s.name} ${fmtC(d[s.key])}`).join(", ") +
+      `, שיעור רווח ${((d.profit / d.revenue) * 100).toFixed(1)}%`;
+  }
 }
-function hideTooltip() { document.getElementById("tooltip").style.display = "none"; }
+function hideTooltip() {
+  document.getElementById("tooltip").style.display = "none";
+  if (geom) geom.cross.setAttribute("visibility", "hidden");
+}
+
+/* ניווט מקלדת בגרף */
+document.getElementById("chart").addEventListener("keydown", e => {
+  if (!geom) return;
+  const { n } = geom;
+  if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+    e.preventDefault();
+    const step = e.key === "ArrowRight" ? 1 : -1;   /* אזור הגרף LTR */
+    focusIdx = focusIdx < 0 ? (step > 0 ? 0 : n - 1) : Math.min(n - 1, Math.max(0, focusIdx + step));
+    showAt(focusIdx, 40, true);
+  } else if (e.key === "Escape") { focusIdx = -1; hideTooltip(); }
+});
+document.getElementById("chart").addEventListener("blur", hideTooltip);
 
 /* ── תצוגת טבלה ── */
 function renderTable(data) {
@@ -450,17 +592,18 @@ function renderTable(data) {
   const table = document.createElement("table");
   const thead = document.createElement("thead");
   const hr = document.createElement("tr");
-  for (const h of ["חודש", "הכנסות (אלפי ₪)", "עלויות (אלפי ₪)", "רווח (אלפי ₪)", "שיעור רווח"]) {
+  for (const h of ["חודש", "הכנסות (אלפי ₪)", "הוצאות (אלפי ₪)", "רווח (אלפי ₪)", "שיעור רווח"]) {
     const th = document.createElement("th"); th.textContent = h; hr.append(th);
   }
+  table.setAttribute("aria-labelledby", "chartTitle");
   thead.append(hr); table.append(thead);
   const tbody = document.createElement("tbody");
   for (const d of [...data].reverse()) {
     const tr = document.createElement("tr");
     const cells = [
       [monthLabel(d.period), ""],
-      [fmtK(d.revenue), "num"],
-      [fmtK(d.costs), "num"],
+      [fmt.format(d.revenue), "num"],
+      [fmt.format(d.costs), "num"],
       [fmt.format(d.profit), "num" + (d.profit < 0 ? " neg" : "")],
       [((d.profit / d.revenue) * 100).toFixed(1) + "%", "num" + (d.profit < 0 ? " neg" : "")],
     ];
@@ -475,8 +618,9 @@ function renderTable(data) {
 /* ── חיווט ── */
 function renderAll() {
   const data = slice();
-  document.getElementById("chartTitle").textContent = `רווח חודשי — ${months} חודשים אחרונים`;
+  document.getElementById("chartTitle").textContent = `הכנסות, הוצאות ורווח — ${months} חודשים אחרונים`;
   renderKpis(data);
+  renderLegend(data);
   renderChart(data);
   renderTable(data);
 }
@@ -492,19 +636,28 @@ document.getElementById("rangeSeg").addEventListener("click", e => {
 document.getElementById("viewBtn").addEventListener("click", () => {
   const tableView = document.getElementById("tableView");
   const chartArea = document.getElementById("chartArea");
+  const legend = document.getElementById("legend");
   const showTable = tableView.style.display !== "block";
   tableView.style.display = showTable ? "block" : "none";
   chartArea.style.display = showTable ? "none" : "block";
+  legend.style.display = showTable ? "none" : "flex";
   document.getElementById("viewBtn").textContent = showTable ? "תצוגת גרף" : "תצוגת טבלה";
+  if (!showTable) renderChart(slice());   /* רינדור מחדש ברוחב האמיתי אחרי החזרה מהטבלה */
 });
 
+function isDarkNow() {
+  const t = document.documentElement.getAttribute("data-theme");
+  return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+}
+function syncThemeBtn() {
+  /* התווית מציינת את המצב שאליו הלחיצה תעביר */
+  document.getElementById("themeBtn").textContent = isDarkNow() ? "מצב בהיר" : "מצב כהה";
+}
 document.getElementById("themeBtn").addEventListener("click", () => {
-  const root = document.documentElement;
-  const dark = root.getAttribute("data-theme") === "dark" ||
-    (!root.getAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
-  root.setAttribute("data-theme", dark ? "light" : "dark");
-  document.getElementById("themeBtn").textContent = dark ? "מצב כהה" : "מצב בהיר";
+  document.documentElement.setAttribute("data-theme", isDarkNow() ? "light" : "dark");
+  syncThemeBtn();
 });
+syncThemeBtn();
 
 addEventListener("resize", () => renderChart(slice()));
 renderAll();
